@@ -101,12 +101,19 @@ class VAD(object):
         freq_prim_thresh = 185
         sfm_prim_thresh = 5
         n_frames = in_file.getnframes()
+        print n_frames
 
         samples = in_file.readframes(n_frames)
         abs_samples = struct.unpack("%dh" % (n_frames), samples)
 
+        #abd samples is an array containing amplitude of all samples
+
+        #print abs_samples
+
         #compute the intensity
         intensity = get_sample_intensity(abs_samples)
+
+        #print intensity
 
         #frame attribute arrays
         frame_energies = []  #holds the energy value for each frame
@@ -122,7 +129,10 @@ class VAD(object):
         #check for the 30 frame mark
         thirty_frame_mark = False
 
+
         for i, frame_bounds in enumerate(chunk_frames_indices(abs_samples, MH_SAMPLES_PER_FRAME)):
+
+            #chunk frame indices here creates a list of time intervale pairs orresponsing to each frame    
 
             frame_start = frame_bounds[0]
             frame_end = frame_bounds[1]

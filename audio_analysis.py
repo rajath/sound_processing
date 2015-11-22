@@ -43,7 +43,7 @@ GROWL = notifier.GrowlNotifier(
     defaultNotifications = ["Speech"]
 )
 
-GROWL.register()
+# GROWL.register()
 
 
 def record(duration):
@@ -87,13 +87,13 @@ def analyze():
 
     if notify_or_not:
         notify_time = datetime.datetime.now()
-        GROWL.notify(
-            noteType = "Speech",
-            title = "Listener",
-            description = "Speech Detected at %d:%d:%d" % (notify_time.hour, notify_time.minute, notify_time.second),
-            sticky = False,
-            priority = 1,
-        )
+        # GROWL.notify(
+        #     noteType = "Speech",
+        #     title = "Listener",
+        #     description = "Speech Detected at %d:%d:%d" % (notify_time.hour, notify_time.minute, notify_time.second),
+        #     sticky = False,
+        #     priority = 1,
+        # )
 
 def dump_to_log(time):
     '''The notifications module expects information of type <str:Notification> type per line'''
@@ -106,6 +106,6 @@ def exit():
 
 if __name__ == "__main__":
     
-    while True:
-        record(DURATION)
+    # while True:
+    #     record(DURATION)
         analyze()
