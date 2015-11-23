@@ -108,4 +108,4 @@ if __name__ == "__main__":
     
     # while True:
     #     record(DURATION)
-        analyze()
+    analyze()

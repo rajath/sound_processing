@@ -11,7 +11,7 @@ import wave
 import struct
 import csv
 from matplotlib import pyplot
-import random
+from array import array
 
 
 MLD_FRAME_DURATION = 30 #frame length in milliseconds for milanovic, lukac and domazetovic
@@ -104,8 +104,8 @@ class VAD(object):
         #set primary thresholds for energy, frequency and SFM
         #these values were determined using experiements by the authors
         #themselves
-        energy_prim_thresh = 100000
-        freq_prim_thresh = 500
+        energy_prim_thresh = 1000
+        freq_prim_thresh = 300
         sfm_prim_thresh = 5
         n_frames = in_file.getnframes()
         n_channels = in_file.getnchannels()
@@ -121,6 +121,8 @@ class VAD(object):
         else:
             raise ValueError("Only supports 8 and 16 bit audio formats.")
         abs_samples = struct.unpack(fmt, samples)
+
+        abs_samples = normalize(abs_samples)
         #write waveform to file
         file_handle = open('waveform.csv','wb')
         csv_handle = csv.writer(file_handle)
@@ -187,7 +189,6 @@ class VAD(object):
             freq_magnitudes = get_freq_domain_magnitudes(freq_domain_real, freq_domain_imag)
             dominant_freq = get_dominant_freq(freq_domain_real, freq_domain_imag)
             frame_SFM = get_sfm(freq_magnitudes)
-            print dominant_freq
             xPoints.append(i)
             
 
@@ -227,34 +228,58 @@ class VAD(object):
             if (dominant_freq - min_dominant_freq) > dominant_freq_thresh:
                 counter += 1
                 dom_freq_counter += 1
-            if ( min_sfm - frame_SFM) > sfm_thresh:
+            if ( frame_SFM  - min_sfm) > sfm_thresh:
                 counter += 1
                 sfm_thresh_counter += 1
 
             energy_freq_list = [frame_energy,min_energy,dominant_freq,min_dominant_freq]   
+            sfm_list = [frame_SFM, min_sfm,sfm_thresh]
             counter_list = [counter,energy_counter,dom_freq_counter,sfm_thresh_counter]
-           
+            yPoints.append(energy_counter )
             
             #print counter_list
             if counter > 1:     #this means that the current frame is not silence.
                 frame_voiced.append(1)
                 print frame_start
-                print energy_freq_list
-                yPoints.append(1)
+                print sfm_list
+                
                 
                 #break
             else:
                 frame_voiced.append(0)
                 min_energy = ((frame_voiced.count(0) * min_energy) + frame_energy)/(frame_voiced.count(0) + 1)
-                yPoints.append(0)
+               
             #now update the energy threshold
             energy_thresh = energy_prim_thresh * log10(min_energy)
 
-            
+         
+        #set speech flag on for 5 consecutive highs and off for 10 consecutive lows    
+        speech_on = False
+        speech_flag_true_count = 0
+        speech_flag_false_count = 1
+        speech_flag_final = []
+        for i, speech_flag in enumerate(frame_voiced):
+            if speech_flag:
+                speech_flag_true_count += 1
+                speech_flag_false_count = 0
+            else:
+                speech_flag_false_count += 1
+                speech_flag_true_count = 0
+
+            if speech_flag_true_count >= 5:
+                speech_flag_final.append(1)
+            elif speech_flag_false_count >=  10 :
+                speech_flag_final.append(0)     
+            elif i > 0:
+                speech_flag_final.append(speech_flag_final[i-1]) 
+            else:
+                speech_flag_final.append(0)   
+
 
         #once the frame attributes are obtained, a final check is performed to determine speech.
         #at least 5 consecutive frames are needed for speech.
-        pyplot.plot(xPoints, yPoints)
+        pyplot.plot(xPoints, speech_flag_final, 'r')
+        #pyplot.plot(xPoints, yPoints, 'g')
         pyplot.show()    
         in_file.close()
 
@@ -262,12 +287,21 @@ class VAD(object):
         old_average_intensity = average_intensity   
         average_intensity = ((old_average_intensity * (instances-1)) + intensity) / float(instances)  #update average intensity
 
-        if locateInArray(frame_voiced, [1, 1, 1, 1, 1,1,1,1,1,1]) >= 0 and intensity > old_average_intensity:
+        if locateInArray(frame_voiced, [1, 1, 1, 1, 1]) >= 0 and intensity > old_average_intensity:
             print 'True'
             return (True, average_intensity)
 
         return (False, average_intensity)
-        
+
+def normalize(snd_data):
+    "Average the volume out"
+    MAXIMUM = 16384
+    times = float(MAXIMUM)/max(abs(i) for i in snd_data)
+
+    r = array('h')
+    for i in snd_data:
+        r.append(int(i*times))
+    return r        
 
 def locateInArray(list1, list2):
     x = 0
