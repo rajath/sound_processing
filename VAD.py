@@ -9,6 +9,9 @@ from numpy import log10, sqrt
 import math
 import wave
 import struct
+import csv
+from matplotlib import pyplot
+import random
 
 
 MLD_FRAME_DURATION = 30 #frame length in milliseconds for milanovic, lukac and domazetovic
@@ -46,8 +49,10 @@ def real_imaginary_freq_domain(samples):
     parts in separate 
     '''
     freq_domain = fft(samples)
+    
     freq_domain_real = [abs(x.real) for x in freq_domain]
     freq_domain_imag = [abs(x.imag) for x in freq_domain]
+
 
     return freq_domain_real, freq_domain_imag
 
@@ -63,6 +68,7 @@ def get_dominant_freq(real_freq_domain_part, imag_freq_domain_part):
     else:
         dominant_freq = abs(fftfreq(len(imag_freq_domain_part), d=(1.0/44100.0))[imag_freq_domain_part.index(max_imag)])
 
+    #print dominant_freq    
     return dominant_freq
 
 def get_freq_domain_magnitudes(real_part, imaginary_part):
@@ -92,21 +98,49 @@ class VAD(object):
             - average_intensity : former average_intensity set by the user (we supply an updated value)
             - instances : number of times this VAD was run was previously
         '''
+
         in_file = wave.open(wave_file, 'rb')
 
         #set primary thresholds for energy, frequency and SFM
         #these values were determined using experiements by the authors
         #themselves
-        energy_prim_thresh = 40
-        freq_prim_thresh = 185
+        energy_prim_thresh = 100000
+        freq_prim_thresh = 500
         sfm_prim_thresh = 5
         n_frames = in_file.getnframes()
-        print n_frames
+        n_channels = in_file.getnchannels()
+        sample_width = in_file.getsampwidth()
+        #print n_frames
 
         samples = in_file.readframes(n_frames)
-        abs_samples = struct.unpack("%dh" % (n_frames), samples)
 
-        #abd samples is an array containing amplitude of all samples
+        if sample_width == 1: 
+            fmt = "%iB" % n_frames # read unsigned chars
+        elif sample_width == 2:
+            fmt = "%ih" % n_frames # read signed 2 byte shorts
+        else:
+            raise ValueError("Only supports 8 and 16 bit audio formats.")
+        abs_samples = struct.unpack(fmt, samples)
+        #write waveform to file
+        file_handle = open('waveform.csv','wb')
+        csv_handle = csv.writer(file_handle)
+
+        ampXPoints = []
+        ampYPoints = []
+        xPoints = []
+        yPoints = []
+  
+        for i,amplitude in enumerate(abs_samples):
+            row = [i,amplitude]
+            #csv_handle.writerow(row)
+            ampXPoints.append(i)
+            ampYPoints.append(amplitude)
+        
+        file_handle.close()
+        pyplot.plot(ampXPoints, ampYPoints)
+        pyplot.show() 
+     
+        #abs samples is an array containing amplitude of all samples
 
         #print abs_samples
 
@@ -142,16 +176,23 @@ class VAD(object):
                 thirty_frame_mark = True
 
             frame = abs_samples[frame_start:frame_end]
+
+          
+           
     
             #compute frame energy
             frame_energy = energy(frame)
+            
             freq_domain_real, freq_domain_imag = real_imaginary_freq_domain(frame)
             freq_magnitudes = get_freq_domain_magnitudes(freq_domain_real, freq_domain_imag)
             dominant_freq = get_dominant_freq(freq_domain_real, freq_domain_imag)
             frame_SFM = get_sfm(freq_magnitudes)
+            print dominant_freq
+            xPoints.append(i)
+            
 
             #now, append these attributes to the frame attribute arrays created previously
-            frame_energies.append(energy)
+            frame_energies.append(frame_energy)
             frame_max_frequencies.append(dominant_freq)
             frame_SFMs.append(frame_SFM)
 
@@ -172,33 +213,57 @@ class VAD(object):
             sfm_thresh = sfm_prim_thresh
 
             counter = 0
+            energy_counter = 0
+            dom_freq_counter = 0
+            sfm_thresh_counter = 0
+
+            #print frame_energy
+            #print min_energy
+            #print energy_thresh
 
             if (frame_energy - min_energy) > energy_thresh:
                 counter += 1
+                energy_counter += 1
             if (dominant_freq - min_dominant_freq) > dominant_freq_thresh:
                 counter += 1
-            if (frame_SFM - min_sfm) > sfm_thresh:
+                dom_freq_counter += 1
+            if ( min_sfm - frame_SFM) > sfm_thresh:
                 counter += 1
+                sfm_thresh_counter += 1
 
+            energy_freq_list = [frame_energy,min_energy,dominant_freq,min_dominant_freq]   
+            counter_list = [counter,energy_counter,dom_freq_counter,sfm_thresh_counter]
+           
+            
+            #print counter_list
             if counter > 1:     #this means that the current frame is not silence.
                 frame_voiced.append(1)
+                print frame_start
+                print energy_freq_list
+                yPoints.append(1)
+                
+                #break
             else:
                 frame_voiced.append(0)
                 min_energy = ((frame_voiced.count(0) * min_energy) + frame_energy)/(frame_voiced.count(0) + 1)
-
+                yPoints.append(0)
             #now update the energy threshold
             energy_thresh = energy_prim_thresh * log10(min_energy)
 
+            
+
         #once the frame attributes are obtained, a final check is performed to determine speech.
         #at least 5 consecutive frames are needed for speech.
-
+        pyplot.plot(xPoints, yPoints)
+        pyplot.show()    
         in_file.close()
 
         instances += 1  #a new instance has been processed
         old_average_intensity = average_intensity   
         average_intensity = ((old_average_intensity * (instances-1)) + intensity) / float(instances)  #update average intensity
 
-        if locateInArray(frame_voiced, [1, 1, 1, 1, 1]) >= 0 and intensity > old_average_intensity:
+        if locateInArray(frame_voiced, [1, 1, 1, 1, 1,1,1,1,1,1]) >= 0 and intensity > old_average_intensity:
+            print 'True'
             return (True, average_intensity)
 
         return (False, average_intensity)
