@@ -3,7 +3,7 @@
 #Environment monitoring for the hearing impaired.
 
 import logging
-import pyaudio
+#import pyaudio
 import datetime
 import wave
 import sys
@@ -37,41 +37,41 @@ LOG_FILE_FD = open(LOG_FILE_NAME, 'w')
 logging.basicConfig(level=logging.ERROR) # this guy exists because Growl is angry about something
 
 #notifications using growl
-GROWL = notifier.GrowlNotifier(
-    applicationName = "Listener",
-    notifications = ["Speech"],
-    defaultNotifications = ["Speech"]
-)
+# GROWL = notifier.GrowlNotifier(
+#     applicationName = "Listener",
+#     notifications = ["Speech"],
+#     defaultNotifications = ["Speech"]
+# )
 
 # GROWL.register()
 
 
-def record(duration):
-    '''Records Input From Microphone Using PyAudio'''
+# def record(duration):
+#     '''Records Input From Microphone Using PyAudio'''
     
-    in_stream = PYAUDIO_INSTANCE.open(
-        format=pyaudio.paInt16,
-        channels=PYAUDIO_CHANNELS,
-        rate=PYAUDIO_RATE,
-        input=PYAUDIO_INPUT,
-        frames_per_buffer=PYAUDIO_FRAMES_PER_BUFFER
-    )
+#     in_stream = PYAUDIO_INSTANCE.open(
+#         format=pyaudio.paInt16,
+#         channels=PYAUDIO_CHANNELS,
+#         rate=PYAUDIO_RATE,
+#         input=PYAUDIO_INPUT,
+#         frames_per_buffer=PYAUDIO_FRAMES_PER_BUFFER
+#     )
 
-    out = []
-    upper_lim = NUM_FRAMES * duration
+#     out = []
+#     upper_lim = NUM_FRAMES * duration
     
-    for i in xrange(0, upper_lim):
-        data = in_stream.read(1024)
-        out.append(data)
+#     for i in xrange(0, upper_lim):
+#         data = in_stream.read(1024)
+#         out.append(data)
     
-    #now the writing section where we write to file
-    data = ''.join(out)
-    out_file = wave.open(OUTPUT_FILE, "wb")
-    out_file.setnchannels(1)
-    out_file.setsampwidth(PYAUDIO_INSTANCE.get_sample_size(pyaudio.paInt16))
-    out_file.setframerate(44100)
-    out_file.writeframes(data)
-    out_file.close()
+#     #now the writing section where we write to file
+#     data = ''.join(out)
+#     out_file = wave.open(OUTPUT_FILE, "wb")
+#     out_file.setnchannels(1)
+#     out_file.setsampwidth(PYAUDIO_INSTANCE.get_sample_size(pyaudio.paInt16))
+#     out_file.setframerate(44100)
+#     out_file.writeframes(data)
+#     out_file.close()
 
 
 def analyze():
