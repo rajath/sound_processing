@@ -222,6 +222,8 @@ class VAD(object):
         #chunk frame indices here creates a list of time intervale pairs orresponsing to each frame   
         frame_chunks = chunk_frames_indices(abs_samples, get_mh_samples_per_frame(sampling_frequency))
 
+        #tracks counter value for each frame
+        frame_counter_flag = []
 
         for i, frame_bounds in enumerate(frame_chunks):
 
@@ -277,16 +279,20 @@ class VAD(object):
             #print frame_energy
             #print min_energy
             #print energy_thresh
+            frame_counter_flag.append(0)
 
             if (frame_energy - min_energy) > energy_thresh:
                 counter += 1
                 energy_counter += 1
+                frame_counter_flag[i] += 1
             if (dominant_freq - min_dominant_freq) > dominant_freq_thresh:
                 counter += 1
                 dom_freq_counter += 1
+                frame_counter_flag[i] += 1
             if ( frame_SFM  - min_sfm) > sfm_thresh:
                 counter += 1
                 sfm_thresh_counter += 1
+                frame_counter_flag[i] += 1
 
             energy_freq_list = [frame_energy,min_energy,energy_thresh,dominant_freq,min_dominant_freq,dominant_freq_thresh,frame_SFM, min_sfm,sfm_thresh]   
             sfm_list = [frame_SFM, min_sfm,sfm_thresh]
@@ -343,14 +349,14 @@ class VAD(object):
 
         
 
-        plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints)
+        plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
         # pyplot.plot(final_wave_xPoints, final_wave)
         # pyplot.show()         
        
         #pyplot.plot(xPoints, speech_flag_final, 'r')
         #pyplot.plot(xPoints, y1Points, 'g')
-        #pyplot.plot(xPoints, y2Points, 'r')
-        #pyplot.show()    
+        pyplot.plot(xPoints, frame_counter_flag, 'g')
+        pyplot.show()    
         in_file.close()
 
         instances += 1  #a new instance has been processed
@@ -365,9 +371,14 @@ class VAD(object):
 
 
 
-def plot_multi_colour(sample_array, frame_chunks,flag_array,xPoints):
+def plot_multi_colour(sample_array, frame_chunks,flag_list,flag_counter_list,xPoints):
     '''
         Plots multi color sample_array based on value of flag_array
+        sample_array: amplitude list
+        frame_chunks: pair of x-coords for frame intervals
+        flag_list: activity flag for each frame
+        flag_counter_list: counter value for each frame
+        xPoints: x axis points (time)
      '''
     
     wave_color_flag = []
@@ -380,22 +391,21 @@ def plot_multi_colour(sample_array, frame_chunks,flag_array,xPoints):
         frame_points = range(frame_start,frame_end)
         frame_length = frame_end - frame_start + 1
         frame = sample_array[frame_start:frame_end]
+
+        # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
      
-        if flag_array[i]:
+        if flag_list[i]:
 
             pyplot.plot(frame_xPoints, frame,'r')
-            #wave_color_flag.extend([1] * frame_length)
         else:
             pyplot.plot(frame_xPoints, frame,'b')
-            #wave_color_flag.extend([0] * frame_length)    
      
-    # Create a colormap for red, green and blue and a norm to color
-    # f' < -0.5 red, f' > 0.5 blue, and the rest green
+
         
     #pyplot.plot(sample_array,c=colormap[wave_color_flag])
     #pyplot.gcf().autofmt_xdate()
-    #pyplot.show()   
+    pyplot.show()   
 
 
       
