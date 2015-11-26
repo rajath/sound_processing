@@ -13,8 +13,7 @@ import struct
 import csv
 from matplotlib import pyplot
 from array import array
-from matplotlib.collections import LineCollection
-from matplotlib.colors import ListedColormap, BoundaryNorm
+
 
 
 SAMPLING_FREQUENCY = 44100
@@ -140,12 +139,11 @@ def locateInArray(list1, list2):
 class VAD(object):
 
     @staticmethod
-    def moattar_homayounpour(wave_file, average_intensity, instances):
+    def moattar_homayounpour(wave_file):
         '''
         Args:
             - wave_file : filename containing the audio to be processes
-            - average_intensity : former average_intensity set by the user (we supply an updated value)
-            - instances : number of times this VAD was run was previously
+  
         '''
 
         in_file = wave.open(wave_file, 'rb')
@@ -297,8 +295,8 @@ class VAD(object):
             energy_freq_list = [frame_energy,min_energy,energy_thresh,dominant_freq,min_dominant_freq,dominant_freq_thresh,frame_SFM, min_sfm,sfm_thresh]   
             sfm_list = [frame_SFM, min_sfm,sfm_thresh]
             counter_list = [counter,energy_counter,dom_freq_counter,sfm_thresh_counter]
-            y1Points.append(dominant_freq)
-            y2Points.append(energy_thresh)
+            # y1Points.append(dominant_freq)
+            # y2Points.append(energy_thresh)
             #print energy_freq_list
             #print counter_list
             if counter > 1:     #this means that the current frame is not silence.
@@ -349,63 +347,26 @@ class VAD(object):
 
         
 
-        plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
+        #plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
         # pyplot.plot(final_wave_xPoints, final_wave)
         # pyplot.show()         
        
         #pyplot.plot(xPoints, speech_flag_final, 'r')
         #pyplot.plot(xPoints, y1Points, 'g')
-        pyplot.plot(xPoints, frame_counter_flag, 'g')
-        pyplot.show()    
+        # pyplot.plot(xPoints, frame_counter_flag, 'g')
+        # pyplot.show()    
         in_file.close()
 
-        instances += 1  #a new instance has been processed
-        old_average_intensity = average_intensity   
-        average_intensity = ((old_average_intensity * (instances-1)) + intensity) / float(instances)  #update average intensity
-
-        if locateInArray(frame_voiced, [1, 1, 1, 1, 1]) >= 0 and intensity > old_average_intensity:
-            
-            return (True, average_intensity)
-
-        return (False, average_intensity)
-
-
-
-def plot_multi_colour(sample_array, frame_chunks,flag_list,flag_counter_list,xPoints):
-    '''
-        Plots multi color sample_array based on value of flag_array
-        sample_array: amplitude list
-        frame_chunks: pair of x-coords for frame intervals
-        flag_list: activity flag for each frame
-        flag_counter_list: counter value for each frame
-        xPoints: x axis points (time)
-     '''
-    
-    wave_color_flag = []
-    wave_color_xPoints = []        
-    colormap = np.array(['r','g'])
-    
-    for i, frame_bounds in enumerate(frame_chunks):
-        frame_start = frame_bounds[0]
-        frame_end = frame_bounds[1]
-        frame_points = range(frame_start,frame_end)
-        frame_length = frame_end - frame_start + 1
-        frame = sample_array[frame_start:frame_end]
-
-        # get x coordinates for teh frame (time)
-        frame_xPoints = xPoints[frame_start:frame_end]
-     
-        if flag_list[i]:
-
-            pyplot.plot(frame_xPoints, frame,'r')
-        else:
-            pyplot.plot(frame_xPoints, frame,'b')
-     
-
         
-    #pyplot.plot(sample_array,c=colormap[wave_color_flag])
-    #pyplot.gcf().autofmt_xdate()
-    pyplot.show()   
+        #old_average_intensity = average_intensity   
+        #average_intensity = ((old_average_intensity * (instances-1)) + intensity) / float(instances)  #update average intensity
+
+
+        return (abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
+
+
+
+
 
 
       

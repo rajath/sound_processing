@@ -11,6 +11,7 @@ import numpy
 import struct
 import os
 from gntp import notifier
+from matplotlib import pyplot
 
 from VAD import VAD
 
@@ -36,68 +37,50 @@ LOG_FILE_NAME = 'decisions.log'
 LOG_FILE_FD = open(LOG_FILE_NAME, 'w')
 logging.basicConfig(level=logging.ERROR) # this guy exists because Growl is angry about something
 
-#notifications using growl
-# GROWL = notifier.GrowlNotifier(
-#     applicationName = "Listener",
-#     notifications = ["Speech"],
-#     defaultNotifications = ["Speech"]
-# )
-
-# GROWL.register()
-
-
-# def record(duration):
-#     '''Records Input From Microphone Using PyAudio'''
-    
-#     in_stream = PYAUDIO_INSTANCE.open(
-#         format=pyaudio.paInt16,
-#         channels=PYAUDIO_CHANNELS,
-#         rate=PYAUDIO_RATE,
-#         input=PYAUDIO_INPUT,
-#         frames_per_buffer=PYAUDIO_FRAMES_PER_BUFFER
-#     )
-
-#     out = []
-#     upper_lim = NUM_FRAMES * duration
-    
-#     for i in xrange(0, upper_lim):
-#         data = in_stream.read(1024)
-#         out.append(data)
-    
-#     #now the writing section where we write to file
-#     data = ''.join(out)
-#     out_file = wave.open(OUTPUT_FILE, "wb")
-#     out_file.setnchannels(1)
-#     out_file.setsampwidth(PYAUDIO_INSTANCE.get_sample_size(pyaudio.paInt16))
-#     out_file.setframerate(44100)
-#     out_file.writeframes(data)
-#     out_file.close()
 
 
 def analyze():
     '''Invokes the VAD and logs the decision'''
     
-    global AVERAGE_INTENSITY_OF_RUNS
-    global INSTANCES_VAD_IS_RUN
-    global LAST_NOTIFICATION_TIME
 
-    (notify_or_not, AVERAGE_INTENSITY_OF_RUNS) =  VAD.moattar_homayounpour(OUTPUT_FILE, AVERAGE_INTENSITY_OF_RUNS, INSTANCES_VAD_IS_RUN)
 
-    INSTANCES_VAD_IS_RUN += 1
+    abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints =  VAD.moattar_homayounpour(OUTPUT_FILE)
 
-    if notify_or_not:
-        notify_time = datetime.datetime.now()
-        # GROWL.notify(
-        #     noteType = "Speech",
-        #     title = "Listener",
-        #     description = "Speech Detected at %d:%d:%d" % (notify_time.hour, notify_time.minute, notify_time.second),
-        #     sticky = False,
-        #     priority = 1,
-        # )
+    pyplot = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
 
-def dump_to_log(time):
-    '''The notifications module expects information of type <str:Notification> type per line'''
-    LOG_FILE_FD.write('Speech detected at: %d:%d:%d\n' % (time.hour, time.minute, time.second))
+    return pyplot
+
+def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter_list,xPoints):
+    '''
+        Plots multi color sample_array based on value of flag_array
+        amplitude_array: amplitude list
+        frame_chunks: pair of x-coords for frame intervals
+        frame_flag_list: activity flag for each frame
+        flag_counter_list: counter value for each frame
+        xPoints: x axis points (time)
+     '''
+    
+    wave_color_flag = []
+    wave_color_xPoints = []        
+   
+    
+    for i, frame_bounds in enumerate(frame_chunks):
+        frame_start = frame_bounds[0]
+        frame_end = frame_bounds[1]
+        frame_points = range(frame_start,frame_end)
+        frame_length = frame_end - frame_start + 1
+        frame = amplitude_array[frame_start:frame_end]
+
+        # get x coordinates for teh frame (time)
+        frame_xPoints = xPoints[frame_start:frame_end]
+        #plot red or blue based on frame flag
+        if frame_flag_list[i]:
+
+            pyplot.plot(frame_xPoints, frame,'r')
+        else:
+            pyplot.plot(frame_xPoints, frame,'b')
+     
+    return pyplot
 
 def exit():
     LOG_FILE_FD.close()
@@ -108,4 +91,6 @@ if __name__ == "__main__":
     
     # while True:
     #     record(DURATION)
-    analyze()
+    plot = analyze()
+    plot.show()
+
