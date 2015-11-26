@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# Author: Shriphani Palakodety
-# spalakod@cs.cmu.edu
+
 
 
 #import required modules
@@ -376,5 +375,5 @@ class VAD(object):
     
 if __name__ == "__main__":
 
-    a, b = VAD.moattar_homayounpour('analysis.wav', 0, 0)
-    print VAD.moattar_homayounpour('analysis.wav', 0, 1)
+    #a, b = VAD.moattar_homayounpour('analysis.wav', 0, 0)
+    print True

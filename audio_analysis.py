@@ -11,9 +11,10 @@ import numpy
 import struct
 import os
 from gntp import notifier
-from matplotlib import pyplot
+from matplotlib import pyplot as plot
 
 from VAD import VAD
+
 
 # VAD constants
 INSTANCES_VAD_IS_RUN = 0
@@ -46,9 +47,10 @@ def analyze():
 
     abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints =  VAD.moattar_homayounpour(OUTPUT_FILE)
 
-    pyplot = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
+    plot = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
+    
 
-    return pyplot
+    return plot
 
 def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter_list,xPoints):
     '''
@@ -76,11 +78,11 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter
         #plot red or blue based on frame flag
         if frame_flag_list[i]:
 
-            pyplot.plot(frame_xPoints, frame,'r')
+            plot.plot(frame_xPoints, frame,'r')
         else:
-            pyplot.plot(frame_xPoints, frame,'b')
+            plot.plot(frame_xPoints, frame,'b')
      
-    return pyplot
+    return plot
 
 def exit():
     LOG_FILE_FD.close()
@@ -91,6 +93,10 @@ if __name__ == "__main__":
     
     # while True:
     #     record(DURATION)
+    
+    fig = plot.figure()
+    plot.subplot(111)
     plot = analyze()
-    plot.show()
+    #plot.show()
+    fig.savefig('analysis.pdf')
 
