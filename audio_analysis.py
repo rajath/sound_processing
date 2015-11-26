@@ -7,11 +7,13 @@ import logging
 import datetime
 import wave
 import sys
-import numpy
+import numpy as np
 import struct
 import os
 from gntp import notifier
 from matplotlib import pyplot as plot
+import matplotlib.dates as md
+import datetime as dt
 
 from VAD import VAD
 
@@ -50,7 +52,7 @@ def analyze(input_wav_file):
     plot = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
     
 
-    return plot
+    return plot, ampXPoints
 
 def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter_list,xPoints):
     '''
@@ -66,6 +68,7 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter
     wave_color_xPoints = []        
    
     
+    
     for i, frame_bounds in enumerate(frame_chunks):
         frame_start = frame_bounds[0]
         frame_end = frame_bounds[1]
@@ -75,13 +78,41 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter
 
         # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
+        
         #plot red or blue based on frame flag
         if frame_flag_list[i]:
 
             plot.plot(frame_xPoints, frame,'r')
         else:
             plot.plot(frame_xPoints, frame,'b')
-     
+
+        #print frame_xPoints    
+        
+    
+    
+
+    #logic to show ticks and labels only at major intervals based on x axis length
+
+    xPoints_max = max(xPoints)
+
+    if(xPoints_max > 36000):
+        x_Step = 3600
+    elif(xPoints_max > 3600):
+        x_Step = 600
+    elif(xPoints_max > 60):
+        x_Step = 30
+    else:
+        x_Step = 5    
+
+
+    x_Display_Points = np.arange(min(xPoints), xPoints_max+1, x_Step)
+    x_Display_Points_Label = [str(dt.timedelta(seconds=x)) for x in x_Display_Points]
+
+    plot.xticks(x_Display_Points,x_Display_Points_Label)
+    plot.xticks( rotation=45 )
+    plot.grid(True,which='major')
+
+    #print x_Display_Points_Label 
     return plot
 
 def exit():
@@ -95,8 +126,8 @@ if __name__ == "__main__":
     #     record(DURATION)
     
     fig = plot.figure()
-    plot.subplot(111)
-    plot = analyze(INPUT_FILE)
+    plot ,ampXPoints = analyze(INPUT_FILE)
+
     #plot.show()
     fig.savefig('analysis.png')
 

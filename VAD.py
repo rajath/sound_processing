@@ -221,6 +221,10 @@ class VAD(object):
 
         #tracks counter value for each frame
         frame_counter_flag = []
+        speech_on = False
+        speech_flag_true_count = 0
+        speech_flag_false_count = 0
+        speech_flag_final = []
 
         for i, frame_bounds in enumerate(frame_chunks):
 
@@ -298,8 +302,11 @@ class VAD(object):
             # y2Points.append(energy_thresh)
             #print energy_freq_list
             #print counter_list
+       
             if counter > 1:     #this means that the current frame is not silence.
                 frame_voiced.append(1)
+                speech_flag_true_count += 1
+                speech_flag_false_count = 0
                 #print frame_start
                 #print energy_freq_list
                 
@@ -307,28 +314,12 @@ class VAD(object):
                 #break
             else:
                 frame_voiced.append(0)
+                speech_flag_false_count += 1
+                speech_flag_true_count = 0
                 #calculate new min energy based on average energy
                 min_energy = ((frame_voiced.count(0) * min_energy) + frame_energy)/(frame_voiced.count(0) + 1)
                
-            #now update the energy threshold
-            energy_thresh = energy_prim_thresh * log10(min_energy)
-        
-
-        #once the frame attributes are obtained, a final check is performed to determine speech.
-        #at least 5 consecutive frames are needed for speech.
-        #set speech flag on for 5 consecutive highs and off for 10 consecutive lows    
-        speech_on = False
-        speech_flag_true_count = 0
-        speech_flag_false_count = 1
-        speech_flag_final = []
-        for i, speech_flag in enumerate(frame_voiced):
-            if speech_flag:
-                speech_flag_true_count += 1
-                speech_flag_false_count = 0
-            else:
-                speech_flag_false_count += 1
-                speech_flag_true_count = 0
-
+            
             if speech_flag_true_count >= 5:
                 speech_flag_final.append(1)
             elif speech_flag_false_count >=  20 :
@@ -338,7 +329,38 @@ class VAD(object):
                 speech_flag_final.append(speech_flag_final[i-1]) 
             else:
                 #start with a zero value
-                speech_flag_final.append(0)   
+                speech_flag_final.append(0)      
+            
+
+            #now update the energy threshold
+            energy_thresh = energy_prim_thresh * log10(min_energy)
+        
+
+        #once the frame attributes are obtained, a final check is performed to determine speech.
+        #at least 5 consecutive frames are needed for speech.
+        #set speech flag on for 5 consecutive highs and off for 10 consecutive lows    
+        # speech_on = False
+        # speech_flag_true_count = 0
+        # speech_flag_false_count = 1
+        # speech_flag_final = []
+        # for i, speech_flag in enumerate(frame_voiced):
+        #     if speech_flag:
+        #         speech_flag_true_count += 1
+        #         speech_flag_false_count = 0
+        #     else:
+        #         speech_flag_false_count += 1
+        #         speech_flag_true_count = 0
+
+        #     if speech_flag_true_count >= 5:
+        #         speech_flag_final.append(1)
+        #     elif speech_flag_false_count >=  20 :
+        #         speech_flag_final.append(0)     
+        #     elif i > 0:
+        #         #maintain previous value if no conditions are met
+        #         speech_flag_final.append(speech_flag_final[i-1]) 
+        #     else:
+        #         #start with a zero value
+        #         speech_flag_final.append(0)   
 
         
         
@@ -376,4 +398,4 @@ class VAD(object):
 if __name__ == "__main__":
 
     #a, b = VAD.moattar_homayounpour('analysis.wav', 0, 0)
-    print True
+    print 
