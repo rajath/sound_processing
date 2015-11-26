@@ -20,7 +20,7 @@ from VAD import VAD
 INSTANCES_VAD_IS_RUN = 0
 AVERAGE_INTENSITY_OF_RUNS = 0
 DURATION = 3   # length of 1 recording
-OUTPUT_FILE = 'analysis.wav'
+INPUT_FILE = 'analysis.wav'
 
 # pyaudio constants
 #PYAUDIO_INSTANCE = pyaudio.PyAudio()
@@ -40,12 +40,12 @@ logging.basicConfig(level=logging.ERROR) # this guy exists because Growl is angr
 
 
 
-def analyze():
+def analyze(input_wav_file):
     '''Invokes the VAD and logs the decision'''
     
 
 
-    abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints =  VAD.moattar_homayounpour(OUTPUT_FILE)
+    abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints =  VAD.moattar_homayounpour(input_wav_file)
 
     plot = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
     
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     
     fig = plot.figure()
     plot.subplot(111)
-    plot = analyze()
+    plot = analyze(INPUT_FILE)
     #plot.show()
-    fig.savefig('analysis.pdf')
+    fig.savefig('analysis.jpg')
 
