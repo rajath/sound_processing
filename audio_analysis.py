@@ -21,7 +21,7 @@ DURATION = 3   # length of 1 recording
 OUTPUT_FILE = 'analysis.wav'
 
 # pyaudio constants
-PYAUDIO_INSTANCE = pyaudio.PyAudio()
+#PYAUDIO_INSTANCE = pyaudio.PyAudio()
 PYAUDIO_CHANNELS = 1
 PYAUDIO_RATE = 44100
 PYAUDIO_INPUT = True
