@@ -98,5 +98,5 @@ if __name__ == "__main__":
     plot.subplot(111)
     plot = analyze(INPUT_FILE)
     #plot.show()
-    fig.savefig('analysis.jpg')
+    fig.savefig('analysis.png')
 
