@@ -15,23 +15,24 @@ from array import array
 
 
 
-SAMPLING_FREQUENCY = 44100
+SAMPLING_FREQUENCY = 44100 #redundant as we calculate sampling frequency now
 MLD_FRAME_DURATION = 30 #frame length in milliseconds for milanovic, lukac and domazetovic
 MLD_SAMPLES_PER_SECOND = SAMPLING_FREQUENCY
 MLD_SAMPLES_PER_FRAME = int(MLD_SAMPLES_PER_SECOND * (MLD_FRAME_DURATION / 1000.0))
 
-MH_FRAME_DURATION = 10 #frame length in milliseconds for Moattar & Homayounpour
+MH_FRAME_DURATION = 50 
+#frame length in milliseconds for Moattar & Homayounpour (increased from 10 to 100 for speed)
 MH_SAMPLES_PER_SECOND = SAMPLING_FREQUENCY
 MH_SAMPLES_PER_FRAME = int(MH_SAMPLES_PER_SECOND * (MH_FRAME_DURATION / 1000.0))
 
 
-def get_mh_samples_per_frame(sampling_frequency=SAMPLING_FREQUENCY):
+def get_mh_samples_per_frame(sampling_frequency=SAMPLING_FREQUENCY,mh_frame_duration=MH_FRAME_DURATION):
 
     '''
         Get samples per frame based on caluclated sampling frequency
 
     '''
-    return    int(sampling_frequency * (MH_FRAME_DURATION / 1000.0))       
+    return    int(sampling_frequency * (mh_frame_duration / 1000.0))       
 
 
 def chunk_frames_indices(samples, samples_per_frame):
@@ -138,10 +139,11 @@ def locateInArray(list1, list2):
 class VAD(object):
 
     @staticmethod
-    def moattar_homayounpour(wave_file):
+    def moattar_homayounpour(wave_file,mh_frame_duration):
         '''
         Args:
             - wave_file : filename containing the audio to be processes
+            - mh_frame_duration: frame length in ms for moattar homayanpour analysis
   
         '''
 
@@ -183,19 +185,6 @@ class VAD(object):
         ampXPoints = range(n_frames)
         ampXPoints[:] = [float(x) / sampling_frequency for x in ampXPoints]
 
-        
-
-        #write waveform to file
-        #pyplot.plot(ampXPoints,abs_samples, 'r')
-        #pyplot.show() 
-
-        
-  
-       
-     
-        #abs samples is an array containing amplitude of all samples
-
-        #print abs_samples
 
         #compute the intensity
         intensity = get_sample_intensity(abs_samples)
@@ -217,7 +206,7 @@ class VAD(object):
         thirty_frame_mark = False
 
         #chunk frame indices here creates a list of time intervale pairs orresponsing to each frame   
-        frame_chunks = chunk_frames_indices(abs_samples, get_mh_samples_per_frame(sampling_frequency))
+        frame_chunks = chunk_frames_indices(abs_samples, get_mh_samples_per_frame(sampling_frequency,mh_frame_duration))
 
         #tracks counter value for each frame
         frame_counter_flag = []
@@ -298,7 +287,8 @@ class VAD(object):
             energy_freq_list = [frame_energy,min_energy,energy_thresh,dominant_freq,min_dominant_freq,dominant_freq_thresh,frame_SFM, min_sfm,sfm_thresh]   
             sfm_list = [frame_SFM, min_sfm,sfm_thresh]
             counter_list = [counter,energy_counter,dom_freq_counter,sfm_thresh_counter]
-            # y1Points.append(dominant_freq)
+            #y1Points.append(min_dominant_freq)
+         
             # y2Points.append(energy_thresh)
             #print energy_freq_list
             #print counter_list
@@ -322,7 +312,7 @@ class VAD(object):
             
             if speech_flag_true_count >= 5:
                 speech_flag_final.append(1)
-            elif speech_flag_false_count >=  20 :
+            elif speech_flag_false_count >=  10 :
                 speech_flag_final.append(0)     
             elif i > 0:
                 #maintain previous value if no conditions are met
@@ -334,63 +324,13 @@ class VAD(object):
 
             #now update the energy threshold
             energy_thresh = energy_prim_thresh * log10(min_energy)
-        
 
-        #once the frame attributes are obtained, a final check is performed to determine speech.
-        #at least 5 consecutive frames are needed for speech.
-        #set speech flag on for 5 consecutive highs and off for 10 consecutive lows    
-        # speech_on = False
-        # speech_flag_true_count = 0
-        # speech_flag_false_count = 1
-        # speech_flag_final = []
-        # for i, speech_flag in enumerate(frame_voiced):
-        #     if speech_flag:
-        #         speech_flag_true_count += 1
-        #         speech_flag_false_count = 0
-        #     else:
-        #         speech_flag_false_count += 1
-        #         speech_flag_true_count = 0
-
-        #     if speech_flag_true_count >= 5:
-        #         speech_flag_final.append(1)
-        #     elif speech_flag_false_count >=  20 :
-        #         speech_flag_final.append(0)     
-        #     elif i > 0:
-        #         #maintain previous value if no conditions are met
-        #         speech_flag_final.append(speech_flag_final[i-1]) 
-        #     else:
-        #         #start with a zero value
-        #         speech_flag_final.append(0)   
-
-        
-        
-
-
-        
-
-        #plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
-        # pyplot.plot(final_wave_xPoints, final_wave)
-        # pyplot.show()         
-       
-        #pyplot.plot(xPoints, speech_flag_final, 'r')
-        #pyplot.plot(xPoints, y1Points, 'g')
-        # pyplot.plot(xPoints, frame_counter_flag, 'g')
-        # pyplot.show()    
+        #close the input file    
         in_file.close()
+        #pyplot.plot(xPoints,y1Points)
+        #pyplot.show()
 
-        
-        #old_average_intensity = average_intensity   
-        #average_intensity = ((old_average_intensity * (instances-1)) + intensity) / float(instances)  #update average intensity
-
-
-        return (abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
-
-
-
-
-
-
-      
+        return (abs_samples,frame_chunks,speech_flag_final,ampXPoints,sampling_frequency)
 
 
 

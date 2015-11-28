@@ -10,51 +10,53 @@ import sys
 import numpy as np
 import struct
 import os
-from gntp import notifier
 from matplotlib import pyplot as plot
 import matplotlib.dates as md
 import datetime as dt
+import sys, getopt
 
 from VAD import VAD
 
 
+
+
+
 # VAD constants
-INSTANCES_VAD_IS_RUN = 0
-AVERAGE_INTENSITY_OF_RUNS = 0
-DURATION = 3   # length of 1 recording
-INPUT_FILE = 'analysis.wav'
 
-# pyaudio constants
-#PYAUDIO_INSTANCE = pyaudio.PyAudio()
-PYAUDIO_CHANNELS = 1
-PYAUDIO_RATE = 44100
-PYAUDIO_INPUT = True
-PYAUDIO_FRAMES_PER_BUFFER = 1024
-
-# Listener constants
-NUM_FRAMES = PYAUDIO_RATE / PYAUDIO_FRAMES_PER_BUFFER
-LAST_NOTIFICATION_TIME = None
-
-#logging constants
-LOG_FILE_NAME = 'decisions.log'
-LOG_FILE_FD = open(LOG_FILE_NAME, 'w')
-logging.basicConfig(level=logging.ERROR) # this guy exists because Growl is angry about something
+MH_FRAME_DURATION = 10
+#frame length in milliseconds for Moattar & Homayounpour (increased from 10 to 100 for speed)
 
 
+def main(argv):
+   inputfile = ''
+   try:
+      opts, args = getopt.getopt(argv,"hi:",["input="])
+   except getopt.GetoptError:
+      return False
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'audio_analyze.py -i <inputfile> '
+         sys.exit()
+      elif opt in ("-i", "--input"):
+         inputfile = arg
+         return inputfile   
 
 def analyze(input_wav_file):
     '''Invokes the VAD and logs the decision'''
     
 
 
-    abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints =  VAD.moattar_homayounpour(input_wav_file)
+    abs_samples,frame_chunks,speech_flag_final,ampXPoints,sampling_frequency =  VAD.moattar_homayounpour(input_wav_file,MH_FRAME_DURATION)
 
-    plot = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,frame_counter_flag,ampXPoints)
+    plot,print_string = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints)
     
+    print_string += "Sampling Frequency: %d  Hz\n" % sampling_frequency
+    print_string += "Frame Duration: %d ms\n" % MH_FRAME_DURATION
 
-    return plot, ampXPoints
 
-def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter_list,xPoints):
+    return plot, print_string
+
+def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints):
     '''
         Plots multi color sample_array based on value of flag_array
         amplitude_array: amplitude list
@@ -67,7 +69,8 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter
     wave_color_flag = []
     wave_color_xPoints = []        
    
-    
+    input_speech_length = 0
+    input_silence_length = 0
     
     for i, frame_bounds in enumerate(frame_chunks):
         frame_start = frame_bounds[0]
@@ -78,18 +81,25 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter
 
         # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
+        frame_time_length = xPoints[frame_end] - xPoints[frame_start]
         
         #plot red or blue based on frame flag
         if frame_flag_list[i]:
-
-            plot.plot(frame_xPoints, frame,'r')
+            input_speech_length += frame_time_length
+            plot.plot(frame_xPoints, frame,color=[214/255., 39/255., 40/255.])
         else:
-            plot.plot(frame_xPoints, frame,'b')
+            plot.plot(frame_xPoints, frame,color=[31/255., 119/255., 180/255.])
+            input_silence_length += frame_time_length
 
         #print frame_xPoints    
         
     
-    
+    # print % of speech vs total
+
+    speech_ratio = round((input_speech_length * 100 / (input_speech_length + input_silence_length)),2)
+    print_string = "Speech Length (H:i:s): %s \n" % str(dt.timedelta(seconds=(input_speech_length)))
+    print_string += "Total Length of audio(H:i:s):  %s \n" % str(dt.timedelta(seconds=(input_speech_length + input_silence_length)))
+    print_string += "Speech Ratio: %d \n" % speech_ratio
 
     #logic to show ticks and labels only at major intervals based on x axis length
 
@@ -104,30 +114,55 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,flag_counter
     else:
         x_Step = 5    
 
+        
 
     x_Display_Points = np.arange(min(xPoints), xPoints_max+1, x_Step)
     x_Display_Points_Label = [str(dt.timedelta(seconds=x)) for x in x_Display_Points]
 
     plot.xticks(x_Display_Points,x_Display_Points_Label)
     plot.xticks( rotation=45 )
-    plot.grid(True,which='major')
+    plot.grid(True,which='major',axis='x')
+    # Remove the plot frame lines. They are unnecessary chartjunk.    
+    ax = plot.subplot(111)    
+    ax.spines["top"].set_visible(False)    
+    ax.spines["bottom"].set_visible(False)    
+    ax.spines["right"].set_visible(False)    
+    ax.spines["left"].set_visible(False)    
+      
+    # Ensure that the axis ticks only show up on the bottom and left of the plot.    
+    # Ticks on the right and top of the plot are generally unnecessary chartjunk.    
+    ax.get_xaxis().tick_bottom()    
+    ax.get_yaxis().tick_left() 
 
     #print x_Display_Points_Label 
-    return plot
+    return plot,print_string
 
-def exit():
-    LOG_FILE_FD.close()
-    OUTPUT_FILE.close()
 
 
 if __name__ == "__main__":
     
-    # while True:
-    #     record(DURATION)
-    
-    fig = plot.figure()
-    plot ,ampXPoints = analyze(INPUT_FILE)
+    #try:
+        input_file = main(sys.argv[1:])
+        if(input_file):
+        
+            fig = plot.figure()
+            plot ,print_string = analyze(input_file)
+            
+            print print_string
 
-    #plot.show()
-    fig.savefig('analysis.png')
+            #plot.show()
+            filename = os.path.splitext(input_file)[0]
+            date_string = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
+            #write print string to file
+            with open('txt/'+ filename +'-' + date_string + '-' +str(MH_FRAME_DURATION) + 'ms.txt', "w") as text_file:
+                text_file.write(print_string)
+            fig.savefig('png/'+ filename +'-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.png')
+        else:
+            print 'No input file'
+            sys.exit()
+
+    #except Exception,e: 
+        #print str(e)
+        #sys.exit()
+
 
