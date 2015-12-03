@@ -250,6 +250,7 @@ class VAD(object):
                 min_energy = frame_energy
                 min_dominant_freq = dominant_freq
                 min_sfm = frame_SFM
+                print "Thirty mark crossed"
     	        
             elif not thirty_frame_mark:
                 min_energy = min(min_energy, frame_energy)
@@ -284,9 +285,13 @@ class VAD(object):
                 sfm_thresh_counter += 1
                 frame_counter_flag[i] += 1
 
+
+
             energy_freq_list = [frame_energy,min_energy,energy_thresh,dominant_freq,min_dominant_freq,dominant_freq_thresh,frame_SFM, min_sfm,sfm_thresh]   
             sfm_list = [frame_SFM, min_sfm,sfm_thresh]
             counter_list = [counter,energy_counter,dom_freq_counter,sfm_thresh_counter]
+
+            print "[%d] ." % i,
             #y1Points.append(min_dominant_freq)
          
             # y2Points.append(energy_thresh)
@@ -325,6 +330,7 @@ class VAD(object):
             #now update the energy threshold
             energy_thresh = energy_prim_thresh * log10(min_energy)
 
+        print "\nAll frames have been processed"    
         #close the input file    
         in_file.close()
         #pyplot.plot(xPoints,y1Points)

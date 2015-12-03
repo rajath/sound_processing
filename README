@@ -1,7 +1,5 @@
-Listener can be used to listen to the surroundings and alert the user of the computer if speech / loud noises are detected.
+Can analayze a wave file of any sampling frquency and save a waveform in png format (in folder /png) with speech activity highlighted in red. Also saves a text file (in /txt folder) with details of speech length and processing time.
 
-This application contains implementations of two voice-activity-detection algorithms and provides notifications using Growl on computers using Mac OS X.
+Just run it with the command:
 
-On machines without Growl installed, Listener writes human-readable output to /var/tmp/audio.log which can be used by tools like Geektool. 
-
-For more information visit: http://shriphani.com/blog/listener
+python audio_analysis.py -i "inputfile.wav"

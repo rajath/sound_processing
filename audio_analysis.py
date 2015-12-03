@@ -2,9 +2,10 @@
 #Author: Shriphani Palakodety
 #Environment monitoring for the hearing impaired.
 
-import logging
+import traceback
 #import pyaudio
 import datetime
+import time
 import wave
 import sys
 import numpy as np
@@ -14,8 +15,8 @@ from matplotlib import pyplot as plot
 import matplotlib.dates as md
 import datetime as dt
 import sys, getopt
-
 from VAD import VAD
+#import timing
 
 
 
@@ -23,7 +24,7 @@ from VAD import VAD
 
 # VAD constants
 
-MH_FRAME_DURATION = 10
+MH_FRAME_DURATION = 100
 #frame length in milliseconds for Moattar & Homayounpour (increased from 10 to 100 for speed)
 
 
@@ -48,15 +49,18 @@ def analyze(input_wav_file):
 
     abs_samples,frame_chunks,speech_flag_final,ampXPoints,sampling_frequency =  VAD.moattar_homayounpour(input_wav_file,MH_FRAME_DURATION)
 
-    plot,print_string = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints)
-    
+    #print(" Frame analysis end --- %s seconds ---" % (time.time() - start_time))
+    print_string = " Frame analysis end --- %s seconds ---\n" % (time.time() - start_time)
+    plot,print_string = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints,print_string)
+    #print(" Plotting end --- %s seconds ---" % (time.time() - start_time))
+    print_string += " Plotting end --- %s seconds ---\n" % (time.time() - start_time)
     print_string += "Sampling Frequency: %d  Hz\n" % sampling_frequency
     print_string += "Frame Duration: %d ms\n" % MH_FRAME_DURATION
 
 
     return plot, print_string
 
-def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints):
+def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,print_string):
     '''
         Plots multi color sample_array based on value of flag_array
         amplitude_array: amplitude list
@@ -65,7 +69,7 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints):
         flag_counter_list: counter value for each frame
         xPoints: x axis points (time)
      '''
-    
+    print "Creating plots ..."
     wave_color_flag = []
     wave_color_xPoints = []        
    
@@ -97,9 +101,10 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints):
     # print % of speech vs total
 
     speech_ratio = round((input_speech_length * 100 / (input_speech_length + input_silence_length)),2)
-    print_string = "Speech Length (H:i:s): %s \n" % str(dt.timedelta(seconds=(input_speech_length)))
+    print_string += "Speech Length (H:i:s): %s \n" % str(dt.timedelta(seconds=(input_speech_length)))
+    print_string += "Speech Length (s): %d \n" % input_speech_length
     print_string += "Total Length of audio(H:i:s):  %s \n" % str(dt.timedelta(seconds=(input_speech_length + input_silence_length)))
-    print_string += "Speech Ratio: %d \n" % speech_ratio
+    print_string += "Speech Ratio: %f \n" % speech_ratio
 
     #logic to show ticks and labels only at major intervals based on x axis length
 
@@ -134,35 +139,43 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints):
     ax.get_xaxis().tick_bottom()    
     ax.get_yaxis().tick_left() 
 
+    print "Plots created ..."
     #print x_Display_Points_Label 
     return plot,print_string
 
 
 
 if __name__ == "__main__":
+
+    start_time = time.time()
     
-    #try:
+    try:
         input_file = main(sys.argv[1:])
         if(input_file):
         
             fig = plot.figure()
             plot ,print_string = analyze(input_file)
             
-            print print_string
+           
 
             #plot.show()
-            filename = os.path.splitext(input_file)[0]
+            filename = os.path.basename(input_file)
+            filename = os.path.splitext(filename)[0]
             date_string = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
-            #write print string to file
-            with open('txt/'+ filename +'-' + date_string + '-' +str(MH_FRAME_DURATION) + 'ms.txt', "w") as text_file:
-                text_file.write(print_string)
+            #write print string to file and save plot as png
             fig.savefig('png/'+ filename +'-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.png')
+            with open('txt/'+ filename +'-' + date_string + '-' +str(MH_FRAME_DURATION) + 'ms.txt', "w") as text_file:
+                print_string += "End --- %s seconds ---\n" % (time.time() - start_time)
+                text_file.write(print_string)
         else:
             print 'No input file'
             sys.exit()
 
-    #except Exception,e: 
-        #print str(e)
-        #sys.exit()
+        print print_string
+        #print("End --- %s seconds ---" % (time.time() - start_time))
+
+    except Exception,e: 
+        print(traceback.format_exc())
+        sys.exit()
 
 
