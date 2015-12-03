@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-#Author: Shriphani Palakodety
-#Environment monitoring for the hearing impaired.
 
 import traceback
 #import pyaudio
