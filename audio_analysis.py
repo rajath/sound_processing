@@ -22,7 +22,7 @@ from VAD import VAD
 
 # VAD constants
 
-MH_FRAME_DURATION = 100
+MH_FRAME_DURATION = 20
 #frame length in milliseconds for Moattar & Homayounpour (increased from 10 to 100 for speed)
 
 
@@ -41,7 +41,7 @@ def main(argv):
          return inputfile   
 
 def analyze(input_wav_file):
-    '''Invokes the VAD and logs the decision'''
+    '''Invokes the VAD and plots waveforms'''
     
 
 
@@ -94,7 +94,7 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
             input_silence_length += frame_time_length
 
         #print frame_xPoints    
-        
+    print_string += " Plotting loop end --- %s seconds ---\n" % (time.time() - start_time)    
     
     # print % of speech vs total
 
@@ -117,7 +117,7 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
     else:
         x_Step = 5    
 
-        
+           
 
     x_Display_Points = np.arange(min(xPoints), xPoints_max+1, x_Step)
     x_Display_Points_Label = [str(dt.timedelta(seconds=x)) for x in x_Display_Points]
@@ -125,6 +125,7 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
     plot.xticks(x_Display_Points,x_Display_Points_Label)
     plot.xticks( rotation=45 )
     plot.grid(True,which='major',axis='x')
+    print_string += " Plotting axis setup end --- %s seconds ---\n" % (time.time() - start_time) 
     # Remove the plot frame lines. They are unnecessary chartjunk.    
     ax = plot.subplot(111)    
     ax.spines["top"].set_visible(False)    
@@ -148,6 +149,7 @@ if __name__ == "__main__":
     start_time = time.time()
     
     try:
+        #fetch input command arguments or throw exception
         input_file = main(sys.argv[1:])
         if(input_file):
         
@@ -162,6 +164,10 @@ if __name__ == "__main__":
             date_string = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
             #write print string to file and save plot as png
             fig.savefig('png/'+ filename +'-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.png')
+            #close plot
+            plot.clf()
+            plot.close()
+
             with open('txt/'+ filename +'-' + date_string + '-' +str(MH_FRAME_DURATION) + 'ms.txt', "w") as text_file:
                 print_string += "End --- %s seconds ---\n" % (time.time() - start_time)
                 text_file.write(print_string)

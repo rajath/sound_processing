@@ -314,7 +314,7 @@ class VAD(object):
                 #calculate new min energy based on average energy
                 min_energy = ((frame_voiced.count(0) * min_energy) + frame_energy)/(frame_voiced.count(0) + 1)
                
-            
+            #do not change flag if speech is < 5 frames or silence < 10 frames
             if speech_flag_true_count >= 5:
                 speech_flag_final.append(1)
             elif speech_flag_false_count >=  10 :
@@ -344,4 +344,4 @@ class VAD(object):
 if __name__ == "__main__":
 
     #a, b = VAD.moattar_homayounpour('analysis.wav', 0, 0)
-    print 
+    print  True
