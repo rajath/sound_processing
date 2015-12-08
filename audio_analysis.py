@@ -12,7 +12,9 @@ import os
 from matplotlib import pyplot as plot
 import matplotlib.dates as md
 import datetime as dt
+import csv as csv
 import sys, getopt
+import itertools as itr
 from VAD import VAD
 #import timing
 
@@ -22,9 +24,13 @@ from VAD import VAD
 
 # VAD constants
 
-MH_FRAME_DURATION = 20
+MH_FRAME_DURATION = 100
 #frame length in milliseconds for Moattar & Homayounpour (increased from 10 to 100 for speed)
 
+#plotting constants
+
+# if we need to save plots (csv stored for all runs)
+PLOT_SAVE = False
 
 def main(argv):
    inputfile = ''
@@ -49,14 +55,15 @@ def analyze(input_wav_file):
 
     #print(" Frame analysis end --- %s seconds ---" % (time.time() - start_time))
     print_string = " Frame analysis end --- %s seconds ---\n" % (time.time() - start_time)
-    plot,print_string = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints,print_string)
+    # call function to create csv list and multi color plots (if needed)
+    plot,print_string,frame_csv_rows = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints,print_string)
     #print(" Plotting end --- %s seconds ---" % (time.time() - start_time))
     print_string += " Plotting end --- %s seconds ---\n" % (time.time() - start_time)
     print_string += "Sampling Frequency: %d  Hz\n" % sampling_frequency
     print_string += "Frame Duration: %d ms\n" % MH_FRAME_DURATION
 
 
-    return plot, print_string
+    return plot, print_string,frame_csv_rows
 
 def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,print_string):
     '''
@@ -67,12 +74,13 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
         flag_counter_list: counter value for each frame
         xPoints: x axis points (time)
      '''
-    print "Creating plots ..."
+    print "Creating plot and csv data ..."
     wave_color_flag = []
     wave_color_xPoints = []        
    
     input_speech_length = 0
     input_silence_length = 0
+    frame_csv_rows = []
     
     for i, frame_bounds in enumerate(frame_chunks):
         frame_start = frame_bounds[0]
@@ -84,16 +92,25 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
         # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
         frame_time_length = xPoints[frame_end] - xPoints[frame_start]
+        frame_xPoints_points = len(frame_xPoints)
         
         #plot red or blue based on frame flag
         if frame_flag_list[i]:
             input_speech_length += frame_time_length
-            plot.plot(frame_xPoints, frame,color=[214/255., 39/255., 40/255.])
+            frame_row = zip(frame_xPoints,frame,itr.repeat(1,frame_xPoints_points))
+            if PLOT_SAVE:
+                plot.plot(frame_xPoints, frame,color=[214/255., 39/255., 40/255.])
+                plot.plot(frame_xPoints, frame,'r')
         else:
-            plot.plot(frame_xPoints, frame,color=[31/255., 119/255., 180/255.])
+            if PLOT_SAVE:
+                plot.plot(frame_xPoints, frame,color=[31/255., 119/255., 180/255.])
+                plot.plot(frame_xPoints, frame,'g')
+            frame_row = zip(frame_xPoints,frame,itr.repeat(0,frame_xPoints_points))
             input_silence_length += frame_time_length
+        
+        #Append frame rows to main csv list
+        frame_csv_rows.extend(frame_row)      
 
-        #print frame_xPoints    
     print_string += " Plotting loop end --- %s seconds ---\n" % (time.time() - start_time)    
     
     # print % of speech vs total
@@ -104,43 +121,45 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
     print_string += "Total Length of audio(H:i:s):  %s \n" % str(dt.timedelta(seconds=(input_speech_length + input_silence_length)))
     print_string += "Speech Ratio: %f \n" % speech_ratio
 
-    #logic to show ticks and labels only at major intervals based on x axis length
+    if PLOT_SAVE:
 
-    xPoints_max = max(xPoints)
+        #logic to show ticks and labels only at major intervals based on x axis length
 
-    if(xPoints_max > 36000):
-        x_Step = 3600
-    elif(xPoints_max > 3600):
-        x_Step = 600
-    elif(xPoints_max > 60):
-        x_Step = 30
-    else:
-        x_Step = 5    
+        xPoints_max = max(xPoints)
+
+        if(xPoints_max > 36000):
+            x_Step = 3600
+        elif(xPoints_max > 3600):
+            x_Step = 600
+        elif(xPoints_max > 60):
+            x_Step = 30
+        else:
+            x_Step = 5    
 
            
 
-    x_Display_Points = np.arange(min(xPoints), xPoints_max+1, x_Step)
-    x_Display_Points_Label = [str(dt.timedelta(seconds=x)) for x in x_Display_Points]
+        x_Display_Points = np.arange(min(xPoints), xPoints_max+1, x_Step)
+        x_Display_Points_Label = [str(dt.timedelta(seconds=x)) for x in x_Display_Points]
 
-    plot.xticks(x_Display_Points,x_Display_Points_Label)
-    plot.xticks( rotation=45 )
-    plot.grid(True,which='major',axis='x')
-    print_string += " Plotting axis setup end --- %s seconds ---\n" % (time.time() - start_time) 
-    # Remove the plot frame lines. They are unnecessary chartjunk.    
-    ax = plot.subplot(111)    
-    ax.spines["top"].set_visible(False)    
-    ax.spines["bottom"].set_visible(False)    
-    ax.spines["right"].set_visible(False)    
-    ax.spines["left"].set_visible(False)    
-      
-    # Ensure that the axis ticks only show up on the bottom and left of the plot.    
-    # Ticks on the right and top of the plot are generally unnecessary chartjunk.    
-    ax.get_xaxis().tick_bottom()    
-    ax.get_yaxis().tick_left() 
+        plot.xticks(x_Display_Points,x_Display_Points_Label)
+        plot.xticks( rotation=45 )
+        plot.grid(True,which='major',axis='x')
+        print_string += " Plotting axis setup end --- %s seconds ---\n" % (time.time() - start_time) 
+        # Remove the plot frame lines. They are unnecessary chartjunk.    
+        ax = plot.subplot(111)    
+        ax.spines["top"].set_visible(False)    
+        ax.spines["bottom"].set_visible(False)    
+        ax.spines["right"].set_visible(False)    
+        ax.spines["left"].set_visible(False)    
+          
+        # Ensure that the axis ticks only show up on the bottom and left of the plot.    
+        # Ticks on the right and top of the plot are generally unnecessary chartjunk.    
+        ax.get_xaxis().tick_bottom()    
+        ax.get_yaxis().tick_left() 
 
-    print "Plots created ..."
-    #print x_Display_Points_Label 
-    return plot,print_string
+        print "Plots created ..."
+    
+    return plot,print_string,frame_csv_rows
 
 
 
@@ -153,24 +172,33 @@ if __name__ == "__main__":
         input_file = main(sys.argv[1:])
         if(input_file):
         
-            fig = plot.figure()
-            plot ,print_string = analyze(input_file)
             
-           
-
-            #plot.show()
+            plot ,print_string,frame_csv_rows = analyze(input_file)
+            
+          
             filename = os.path.basename(input_file)
             filename = os.path.splitext(filename)[0]
             date_string = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
-            #write print string to file and save plot as png
-            fig.savefig('png/'+ filename +'-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.png')
-            #close plot
-            plot.clf()
-            plot.close()
+            if PLOT_SAVE:
+                fig = plot.figure()
+                #show plot if needed
+                #plot.show()
+                #save plot as png
+                fig.savefig('png/'+ filename +'-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.png')
+                #close plot
+                plot.clf()
+                plot.close()
 
+            # print logs and timestamps to txt file    
             with open('txt/'+ filename +'-' + date_string + '-' +str(MH_FRAME_DURATION) + 'ms.txt', "w") as text_file:
                 print_string += "End --- %s seconds ---\n" % (time.time() - start_time)
                 text_file.write(print_string)
+            # print csv list to csv file
+            with open('csv/'+ filename +'-' + date_string + '-' +str(MH_FRAME_DURATION) + 'ms.csv', "w") as csv_file:
+                csv_writer = csv.writer(csv_file)
+                header=['Amplitude','time','speechFlag']
+                csv_writer.writerow(header)
+                [csv_writer.writerow(row) for row in frame_csv_rows]
         else:
             print 'No input file'
             sys.exit()

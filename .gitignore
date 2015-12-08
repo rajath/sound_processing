@@ -1,3 +1,7 @@
 *.wav
 *.csv
 *.pyc
+png/*
+txt/*
+wav/*
+csv/*
