@@ -13,3 +13,5 @@ Just run it with the command:
 python audio_analysis.py -i "inputfile.wav" to analyze a single file
 or
 python audio_analysis.py -d "inputdir" to analyze all wav files inside inputdir
+
+use option -s for a silent output where nothing will be printed on stdout
