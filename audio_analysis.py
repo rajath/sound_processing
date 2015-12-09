@@ -15,6 +15,8 @@ import datetime as dt
 import csv as csv
 import sys, getopt
 import itertools as itr
+import multiprocessing as multiprocessing
+import glob as glob 
 from VAD import VAD
 #import timing
 
@@ -35,16 +37,19 @@ PLOT_SAVE = False
 def main(argv):
    inputfile = ''
    try:
-      opts, args = getopt.getopt(argv,"hi:",["input="])
+      opts, args = getopt.getopt(argv,"hi:d:",["input="])
    except getopt.GetoptError:
       return False
    for opt, arg in opts:
       if opt == '-h':
-         print 'audio_analyze.py -i <inputfile> '
+         print 'audio_analyze.py -i <inputwavfile> \n or audio_analyze.py -d <inputwavdir>'
          sys.exit()
       elif opt in ("-i", "--input"):
          inputfile = arg
-         return inputfile   
+         return inputfile, True
+      elif opt == "-d":
+         inputdir = arg
+         return inputdir, False  
 
 def analyze(input_wav_file):
     '''Invokes the VAD and plots waveforms'''
@@ -161,18 +166,7 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
     
     return plot,print_string,frame_csv_rows
 
-
-
-if __name__ == "__main__":
-
-    start_time = time.time()
-    
-    try:
-        #fetch input command arguments or throw exception
-        input_file = main(sys.argv[1:])
-        if(input_file):
-        
-            
+def process_file(input_file):
             plot ,print_string,frame_csv_rows = analyze(input_file)
             
           
@@ -199,12 +193,41 @@ if __name__ == "__main__":
                 header=['Amplitude','time','speechFlag']
                 csv_writer.writerow(header)
                 [csv_writer.writerow(row) for row in frame_csv_rows]
-        else:
-            print 'No input file'
-            sys.exit()
-
-        print print_string
+            print print_string
         #print("End --- %s seconds ---" % (time.time() - start_time))
+
+
+if __name__ == "__main__":
+
+    start_time = time.time()
+    
+    try:
+        #fetch input command arguments or throw exception
+        inputFileorDir,isFile = main(sys.argv[1:])
+        print inputFileorDir
+        print isFile
+        if(isFile):
+            print inputFileorDir
+        #input argument is a file
+            if(inputFileorDir):
+                process_file(inputFileorDir)
+            else:
+                print 'File %s  does not exist' % inputFileorDir
+                sys.exit()
+        else:
+            print inputFileorDir
+        #input argument  is a directory
+            #create thread for 
+            p = multiprocessing.Pool()
+            for f in glob.glob(inputFileorDir+"/*.wav"):
+            # launch a process for each file
+            # The result will be approximately one process per CPU core available.
+                p.apply_async(process_file, [f]) 
+
+            p.close()
+            p.join() # Wait for all child processes to close.
+
+            print "All files have been processed"
 
     except Exception,e: 
         print(traceback.format_exc())
