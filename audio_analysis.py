@@ -220,14 +220,15 @@ if __name__ == "__main__":
                 print 'File %s  does not exist' % inputFileorDir
                 sys.exit()
         else:
-            print inputFileorDir
-        #input argument  is a directory
+            
+            #input argument  is a directory
             #create thread for 
+            #print inputFileorDir
             p = multiprocessing.Pool()
             for f in glob.glob(inputFileorDir+"/*.wav"):
             # launch a process for each file
             # The result will be approximately one process per CPU core available.
-                p.apply_async(process_file, [f]) 
+                p.apply_async(process_file, args = (f,print_silence)) 
 
             p.close()
             p.join() # Wait for all child processes to close.
