@@ -160,7 +160,8 @@ class VAD(object):
         sample_width = in_file.getsampwidth()
         sampling_frequency = in_file.getframerate()
 
-        if not print_silence print n_frames
+        if not print_silence: 
+            print n_frames 
 
         ampXPoints = []
         ampYPoints = []
@@ -169,7 +170,8 @@ class VAD(object):
         y2Points = []
         y3Points = []
 
-        #print sampling_frequency
+        if not print_silence:
+            print sampling_frequency
 
         samples = in_file.readframes(n_frames)
 
@@ -291,8 +293,8 @@ class VAD(object):
             energy_freq_list = [frame_energy,min_energy,energy_thresh,dominant_freq,min_dominant_freq,dominant_freq_thresh,frame_SFM, min_sfm,sfm_thresh]   
             sfm_list = [frame_SFM, min_sfm,sfm_thresh]
             counter_list = [counter,energy_counter,dom_freq_counter,sfm_thresh_counter]
-
-            print "[%d] ." % i,
+            if not print_silence:
+                print "[%d] ." % i,
             #y1Points.append(min_dominant_freq)
          
             # y2Points.append(energy_thresh)
@@ -330,8 +332,8 @@ class VAD(object):
 
             #now update the energy threshold
             energy_thresh = energy_prim_thresh * log10(min_energy)
-
-        print "\nAll frames have been processed"    
+        if not print_silence:    
+            print "\nAll frames have been processed"    
         #close the input file    
         in_file.close()
         #pyplot.plot(xPoints,y1Points)

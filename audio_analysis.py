@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# original code by https://github.com/shriphani
 
 import traceback
 #import pyaudio
@@ -13,7 +14,7 @@ from matplotlib import pyplot as plot
 import matplotlib.dates as md
 import datetime as dt
 import csv as csv
-import sys, getopt
+import getopt
 import itertools as itr
 import multiprocessing as multiprocessing
 import glob as glob 
@@ -34,33 +35,38 @@ PLOT_SAVE = False
 PRINT_SILENCE = True
 
 def main(argv):
-   inputfile = ''
+   input_arg = ''
+   print_silence = False
+   isFile = True
+
    try:
-      opts, args = getopt.getopt(argv,"hi:d:",["input="])
+      opts, args = getopt.getopt(argv,"hsi:d:",["input="])
    except getopt.GetoptError:
       return False
    for opt, arg in opts:
-      if opt == '-h':
-         print 'audio_analyze.py -i <inputwavfile> \n or audio_analyze.py -d <inputwavdir>'
-         sys.exit()
-      elif opt in ("-i", "--input"):
-         inputfile = arg
-         return inputfile, True
-      elif opt == "-d":
-         inputdir = arg
-         return inputdir, False  
-
-def analyze(input_wav_file):
+        if opt == '-h':
+            print 'audio_analyze.py -i <inputwavfile> \n or audio_analyze.py -d <inputwavdir>'
+            sys.exit()
+        elif opt in ("-i", "--input"):
+            input_arg = arg
+            isFile = True
+        elif opt == "-d":
+            input_arg = arg
+            isFile = False
+        elif opt == "-s":
+            print_silence = True
+   return input_arg, isFile, print_silence      
+def analyze(input_wav_file,print_silence=False):
     '''Invokes the VAD and plots waveforms'''
     
 
 
-    abs_samples,frame_chunks,speech_flag_final,ampXPoints,sampling_frequency =  VAD.moattar_homayounpour(input_wav_file,MH_FRAME_DURATION)
+    abs_samples,frame_chunks,speech_flag_final,ampXPoints,sampling_frequency =  VAD.moattar_homayounpour(input_wav_file,MH_FRAME_DURATION,print_silence)
 
     #print(" Frame analysis end --- %s seconds ---" % (time.time() - start_time))
     print_string = " Frame analysis end --- %s seconds ---\n" % (time.time() - start_time)
     # call function to create csv list and multi color plots (if needed)
-    plot,print_string,frame_csv_rows = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints,print_string)
+    plot,print_string,frame_csv_rows = plot_multi_colour(abs_samples,frame_chunks,speech_flag_final,ampXPoints,print_string,print_silence)
     #print(" Plotting end --- %s seconds ---" % (time.time() - start_time))
     print_string += " Plotting end --- %s seconds ---\n" % (time.time() - start_time)
     print_string += "Sampling Frequency: %d  Hz\n" % sampling_frequency
@@ -69,7 +75,7 @@ def analyze(input_wav_file):
 
     return plot, print_string,frame_csv_rows
 
-def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,print_string):
+def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,print_string,print_silence = False):
     '''
         Plots multi color sample_array based on value of flag_array
         amplitude_array: amplitude list
@@ -78,7 +84,8 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
         flag_counter_list: counter value for each frame
         xPoints: x axis points (time)
      '''
-    print "Creating plot and csv data ..."
+    if not print_silence:
+        print "Creating plot and csv data ..."
     wave_color_flag = []
     wave_color_xPoints = []        
    
@@ -160,13 +167,13 @@ def plot_multi_colour(amplitude_array, frame_chunks,frame_flag_list,xPoints,prin
         # Ticks on the right and top of the plot are generally unnecessary chartjunk.    
         ax.get_xaxis().tick_bottom()    
         ax.get_yaxis().tick_left() 
-
-        print "Plots created ..."
+        if not print_silence:
+            print "Plots created ..."
     
     return plot,print_string,frame_csv_rows
 
-def process_file(input_file):
-            plot ,print_string,frame_csv_rows = analyze(input_file)
+def process_file(input_file,print_silence = False):
+            plot ,print_string,frame_csv_rows = analyze(input_file,print_silence)
             
           
             filename = os.path.basename(input_file)
@@ -192,7 +199,8 @@ def process_file(input_file):
                 header=['Amplitude','time','speechFlag']
                 csv_writer.writerow(header)
                 [csv_writer.writerow(row) for row in frame_csv_rows]
-            print print_string
+            if not print_silence:    
+                print print_string
         #print("End --- %s seconds ---" % (time.time() - start_time))
 
 
@@ -202,14 +210,12 @@ if __name__ == "__main__":
     
     try:
         #fetch input command arguments or throw exception
-        inputFileorDir,isFile = main(sys.argv[1:])
-        print inputFileorDir
-        print isFile
+        inputFileorDir,isFile, print_silence = main(sys.argv[1:])
         if(isFile):
-            print inputFileorDir
+            
         #input argument is a file
             if(inputFileorDir):
-                process_file(inputFileorDir)
+                process_file(inputFileorDir,print_silence)
             else:
                 print 'File %s  does not exist' % inputFileorDir
                 sys.exit()
@@ -225,8 +231,8 @@ if __name__ == "__main__":
 
             p.close()
             p.join() # Wait for all child processes to close.
-
-            print "All files have been processed"
+            if not print_silence:
+                print "All files have been processed"
 
     except Exception,e: 
         print(traceback.format_exc())
