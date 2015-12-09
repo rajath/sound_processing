@@ -25,14 +25,13 @@ from VAD import VAD
 
 
 # VAD constants
-
 MH_FRAME_DURATION = 100
 #frame length in milliseconds for Moattar & Homayounpour (increased from 10 to 100 for speed)
 
 #plotting constants
-
-# if we need to save plots (csv stored for all runs)
+# if we need to save plots (csv stored by default for all runs)
 PLOT_SAVE = False
+PRINT_SILENCE = True
 
 def main(argv):
    inputfile = ''

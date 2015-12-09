@@ -139,7 +139,7 @@ def locateInArray(list1, list2):
 class VAD(object):
 
     @staticmethod
-    def moattar_homayounpour(wave_file,mh_frame_duration):
+    def moattar_homayounpour(wave_file,mh_frame_duration,print_silence=False):
         '''
         Args:
             - wave_file : filename containing the audio to be processes
@@ -159,7 +159,8 @@ class VAD(object):
         n_channels = in_file.getnchannels()
         sample_width = in_file.getsampwidth()
         sampling_frequency = in_file.getframerate()
-        print n_frames
+
+        if not print_silence print n_frames
 
         ampXPoints = []
         ampYPoints = []
@@ -168,7 +169,7 @@ class VAD(object):
         y2Points = []
         y3Points = []
 
-        print sampling_frequency
+        #print sampling_frequency
 
         samples = in_file.readframes(n_frames)
 
@@ -250,7 +251,7 @@ class VAD(object):
                 min_energy = frame_energy
                 min_dominant_freq = dominant_freq
                 min_sfm = frame_SFM
-                print "Thirty mark crossed"
+                #print "Thirty mark crossed"
     	        
             elif not thirty_frame_mark:
                 min_energy = min(min_energy, frame_energy)
