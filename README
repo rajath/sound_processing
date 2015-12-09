@@ -1,5 +1,15 @@
-Can analayze a wave file of any sampling frquency and save a waveform in png format (in folder /png) with speech activity highlighted in red. Also saves a text file (in /txt folder) with details of speech length and processing time.
+Can analayze a wave file (or directory of wave files) of any sampling frquency and can save the following:
+
+a csv file in the csv/ folder:
+Has three columns for time, amplitude, and speechflag. speechflag will be 1 if speech is detected in that sample
+a text file (in /txt folder):
+has details of speech length and processing time.
+a waveform in png format (in folder /png): optional
+has speech activity highlighted in red.
+This is optional and PLOT_SAVE variable needs to be set True inside audio_analysis.py
 
 Just run it with the command:
 
-python audio_analysis.py -i "inputfile.wav"
+python audio_analysis.py -i "inputfile.wav" to analyze a single file
+or
+python audio_analysis.py -d "inputdir" to analyze all wav files inside inputdir
