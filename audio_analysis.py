@@ -23,7 +23,7 @@ from VAD import VAD
 
 
 # VAD constants
-MH_FRAME_DURATION = 100
+MH_FRAME_DURATION = 10
 # frame length in milliseconds for Moattar & Homayounpour (increased from
 # 10 to 100 for speed)
 
