@@ -75,10 +75,10 @@ def real_imaginary_freq_domain(samples,sampling_frequency):
 
     freq_domain_real = [abs(x.real) for x in freq_domain]
     freq_domain_imag = [abs(x.imag) for x in freq_domain]
-    
-    frequencies = fftfreq(len(freq_domain_real), d=(1.0/ sampling_frequency)) 
 
-    positive_frequencies = frequencies[np.where(frequencies >= 0)]  
+    frequencies = fftfreq(len(freq_domain_real), d=(1.0 / sampling_frequency))
+
+    positive_frequencies = frequencies[np.where(frequencies >= 0)]
     magnitudes = abs(freq_domain[np.where(frequencies >= 0)])
 
     peak_frequency = positive_frequencies[np.argmax(magnitudes)]
@@ -90,7 +90,7 @@ def get_dominant_freq(real_freq_domain_part, imag_freq_domain_part, sampling_fre
     '''Returns the dominant frequency'''
     max_real = max(real_freq_domain_part)
     max_imag = max(imag_freq_domain_part)
-    
+
     dominant_freq = 0
 
     if (max_real > max_imag):
@@ -112,10 +112,33 @@ def get_freq_domain_magnitudes(real_part, imaginary_part):
 def get_sfm(frequencies):
 
     a_mean = arithmetic_mean(frequencies)
-    if a_mean > 0:
-        return 10 * log10(geometric_mean(frequencies) / a_mean)
+    g_mean = geometric_mean(frequencies)
+    if a_mean > 0 and g_mean != 0:
+        sfm = 10 * log10(g_mean / a_mean)
+        #sfm = g_mean / a_mean
+        #print sfm, a_mean,g_mean
+        return abs(sfm)
     else:
         return 0
+
+
+def calculateSpectralFlatness(powerSpectrum):
+    geometricMean = np.float64(0)
+    arithmeticMean = 0
+   # print spectrumY, len(powerSpectrum)
+    for i in range(len(powerSpectrum)):
+        y = np.float64(powerSpectrum[i])
+        #geometricMean *= y
+        geometricMean += [np.float64(math.log(y)) if y >0 else 0]
+        arithmeticMean += y
+        # print i, y, geometricMean
+    #geometricMean = geometricMean ** (1.0 / len(spectrumY))
+    geometricMean /= np.float64(len(powerSpectrum))
+    geometricMean = math.exp(geometricMean)
+    arithmeticMean /= float(len(powerSpectrum))
+    spectralFlatness = geometricMean / arithmeticMean
+    #print spectralFlatness, geometricMean, arithmeticMean
+    return spectralFlatness
 
 
 def geometric_mean(frame):
@@ -253,7 +276,7 @@ class VAD(object):
             frame_end = frame_bounds[1]
 
             # marks if 30 frames have been sampled
-            if i >= 30:
+            if i >= 300:
                 thirty_frame_mark = True
 
             frame = abs_samples[frame_start:frame_end]
@@ -262,17 +285,18 @@ class VAD(object):
             frame_energy = energy(frame)
             #frame_energy = 0
 
-            freq_domain_real, freq_domain_imag,freq_magnitudes,dominant_freq  = real_imaginary_freq_domain(
-                frame,sampling_frequency)
-            
+            freq_domain_real, freq_domain_imag, freq_magnitudes, dominant_freq = real_imaginary_freq_domain(
+                frame, sampling_frequency)
+
             # freq_magnitudes = get_freq_domain_magnitudes(
             #     freq_domain_real, freq_domain_imag)
-            #print freq_magnitudes
-            #dominant_freq = get_dominant_freq(
-             #   freq_domain_real, freq_domain_imag, sampling_frequency)
+            # print freq_magnitudes
+            # dominant_freq = get_dominant_freq(
+            #   freq_domain_real, freq_domain_imag, sampling_frequency)
             #dominant_freq = 0
-            #frame_SFM = 0   
+            #frame_SFM = 0
             frame_SFM = get_sfm(freq_magnitudes)
+            #frame_SFM = calculateSpectralFlatness(freq_magnitudes)
             xPoints.append(i)
 
             # now, append these attributes to the frame attribute arrays
@@ -329,6 +353,7 @@ class VAD(object):
             sfm_list = [frame_SFM, min_sfm, sfm_thresh]
             counter_list = [counter, energy_counter,
                             dom_freq_counter, sfm_thresh_counter]
+            #print energy_freq_list
             # if not print_silence:
             #   print "[%d] ." % i,
             # y1Points.append(min_dominant_freq)
