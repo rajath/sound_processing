@@ -64,7 +64,7 @@ def energy(samples):
     return sum([x**2 for x in samples])
 
 
-def real_imaginary_freq_domain(samples,sampling_frequency):
+def real_imaginary_freq_domain(samples, sampling_frequency):
     '''
     Apply fft on the samples and return the real and imaginary
     parts, frequency magnitudes and dominant frequency 
@@ -116,7 +116,7 @@ def get_sfm(frequencies):
     if a_mean > 0 and g_mean != 0:
         sfm = 10 * log10(g_mean / a_mean)
         #sfm = g_mean / a_mean
-        #print sfm, a_mean,g_mean
+        # print sfm, a_mean,g_mean
         return abs(sfm)
     else:
         return 0
@@ -129,7 +129,7 @@ def calculateSpectralFlatness(powerSpectrum):
     for i in range(len(powerSpectrum)):
         y = np.float64(powerSpectrum[i])
         #geometricMean *= y
-        geometricMean += [np.float64(math.log(y)) if y >0 else 0]
+        geometricMean += [np.float64(math.log(y)) if y > 0 else 0]
         arithmeticMean += y
         # print i, y, geometricMean
     #geometricMean = geometricMean ** (1.0 / len(spectrumY))
@@ -137,7 +137,7 @@ def calculateSpectralFlatness(powerSpectrum):
     geometricMean = math.exp(geometricMean)
     arithmeticMean /= float(len(powerSpectrum))
     spectralFlatness = geometricMean / arithmeticMean
-    #print spectralFlatness, geometricMean, arithmeticMean
+    # print spectralFlatness, geometricMean, arithmeticMean
     return spectralFlatness
 
 
@@ -155,13 +155,16 @@ def get_sample_intensity(samples):
 
 
 def normalize(snd_data):
-    "Average the volume out"
-    MAXIMUM = 16384
-    times = float(MAXIMUM) / max(abs(i) for i in snd_data)
+    "Normalize the sound data with max value of 1"
+    # MAXIMUM = 16384
+    # times = float(MAXIMUM) / max(abs(i) for i in snd_data)
 
-    r = array('h')
-    for i in snd_data:
-        r.append(int(i * times))
+    # r = array('h')
+    # for i in snd_data:
+    #     r.append(int(i * times))
+
+    max_value = max(abs(i) for i in snd_data)
+    r = [float(i)/max_value for i in snd_data]
     return r
 
 
@@ -198,13 +201,13 @@ class VAD(object):
         '''
 
         in_file = wave.open(wave_file, 'rb')
-
+        print "File read --- %s seconds ---\n" % (time.time() - start_time)
         # set primary thresholds for energy, frequency and SFM
         # these values were determined using experiements by the authors
         # themselves
         energy_prim_thresh = 40
         freq_prim_thresh = 185
-        sfm_prim_thresh = 5
+        sfm_prim_thresh = 3
         n_frames = in_file.getnframes()
         n_channels = in_file.getnchannels()
         sample_width = in_file.getsampwidth()
@@ -234,6 +237,8 @@ class VAD(object):
         abs_samples = struct.unpack(fmt, samples)
 
         abs_samples = normalize(abs_samples)
+
+        print "Samples normalized  --- %s seconds ---\n" % (time.time() - start_time)
 
         ampXPoints = range(n_frames)
         ampXPoints[:] = [float(x) / sampling_frequency for x in ampXPoints]
@@ -268,7 +273,10 @@ class VAD(object):
         speech_on = False
         speech_flag_true_count = 0
         speech_flag_false_count = 0
+        siren_flag_true_count = 0
+        siren_flag_false_count=0
         speech_flag_final = []
+        siren_flag_final = []
 
         for i, frame_bounds in enumerate(frame_chunks):
 
@@ -276,7 +284,7 @@ class VAD(object):
             frame_end = frame_bounds[1]
 
             # marks if 30 frames have been sampled
-            if i >= 300:
+            if i >= 30:
                 thirty_frame_mark = True
 
             frame = abs_samples[frame_start:frame_end]
@@ -296,6 +304,7 @@ class VAD(object):
             #dominant_freq = 0
             #frame_SFM = 0
             frame_SFM = get_sfm(freq_magnitudes)
+
             #frame_SFM = calculateSpectralFlatness(freq_magnitudes)
             xPoints.append(i)
 
@@ -353,48 +362,87 @@ class VAD(object):
             sfm_list = [frame_SFM, min_sfm, sfm_thresh]
             counter_list = [counter, energy_counter,
                             dom_freq_counter, sfm_thresh_counter]
-            #print energy_freq_list
+            # if counter > 1:
+            #     print energy_freq_list
+            #     print counter_list
             # if not print_silence:
             #   print "[%d] ." % i,
-            # y1Points.append(min_dominant_freq)
-
+            #y1Points.append(dominant_freq - min_dominant_freq - dominant_freq_thresh)
+            y1Points.append(frame_SFM - min_sfm - sfm_thresh)
             # y2Points.append(energy_thresh)
             # print energy_freq_list
             # print counter_list
 
-            if counter > 1:  # this means that the current frame is not silence.
+            # Detect siren, speech or silence/noise
+            if counter > 2:  # this means that the current frame is siren
+                frame_voiced.append(1)
+                siren_flag_true_count += 1
+                siren_flag_false_count =0
+            if counter > 1:  # this means that the current frame is speech
                 frame_voiced.append(1)
                 speech_flag_true_count += 1
                 speech_flag_false_count = 0
 
-            else:
+            else:  # frame is sielnce or noise
                 frame_voiced.append(0)
-                speech_flag_false_count += 1
+                siren_flag_true_count = 0
                 speech_flag_true_count = 0
+                speech_flag_false_count += 1
+                siren_flag_false_count+=1
+                
                 # calculate new min energy based on average energy
                 min_energy = ((frame_voiced.count(0) * min_energy) +
                               frame_energy) / (frame_voiced.count(0) + 1)
 
-            # do not change flag if speech is < 5 frames or silence < 10 frames
+            # do not change flag if speech  < 5 frames or silence <
+            # 10 frames
+        
             if speech_flag_true_count >= 5:
                 speech_flag_final.append(1)
+               
             elif speech_flag_false_count >= 10:
                 speech_flag_final.append(0)
+               
             elif i > 0:
                 # maintain previous value if no conditions are met
                 speech_flag_final.append(speech_flag_final[i - 1])
+                
             else:
                 # start with a zero value
                 speech_flag_final.append(0)
+                
+             # do not change flag if siren is < 2 frames or silence <
+            # 10 frames    
+            if siren_flag_true_count >= 5:
+           
+                siren_flag_final.append(1)
+     
+            elif siren_flag_false_count >= 10:
+        
+                siren_flag_final.append(0)
+            elif i > 0:
+                # maintain previous value if no conditions are met
+       
+                siren_flag_final.append(siren_flag_final[i - 1])
+            else:
+                # start with a zero value
+            
+                siren_flag_final.append(0)
 
+            # y1Points.append(frame_counter_flag[i])
             # now update the energy threshold
             energy_thresh = energy_prim_thresh * log10(min_energy)
+
+
         # close the input file
         in_file.close()
-        # pyplot.plot(xPoints,y1Points)
-        # pyplot.show()
+        #pyplot.plot(xPoints,y1Points)
+        #pyplot.show()
 
-        return (abs_samples, frame_chunks, speech_flag_final, ampXPoints, sampling_frequency)
+        
+
+
+        return (abs_samples, frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency)
 
 
 if __name__ == "__main__":

@@ -23,13 +23,13 @@ from VAD import VAD
 
 
 # VAD constants
-MH_FRAME_DURATION = 50
+MH_FRAME_DURATION = 20
 # frame length in milliseconds for Moattar & Homayounpour (increased from
 # 10 to 100 for speed)
 
 # plotting constants
 # if we need to save plots (csv stored by default for all runs)
-PLOT_SAVE = False
+PLOT_SAVE = True
 PRINT_SILENCE = True
 
 
@@ -60,16 +60,18 @@ def main(argv):
 def analyze(input_wav_file, print_silence, start_time):
     '''Invokes the VAD and plots waveforms'''
 
-    abs_samples, frame_chunks, speech_flag_final, ampXPoints, sampling_frequency = VAD.moattar_homayounpour(
+    abs_samples, frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency = VAD.moattar_homayounpour(
         input_wav_file, MH_FRAME_DURATION, print_silence, start_time)
 
-    #print(" Frame analysis end --- %s seconds ---" % (time.time() - start_time))
+    print(" Frame analysis end --- %s seconds ---" %
+          (time.time() - start_time))
     print_string = " Frame analysis end --- %s seconds ---\n" % (
         time.time() - start_time)
     # call function to create csv list and multi color plots (if needed)
     plot, print_string, frame_csv_rows = plot_multi_colour(
-        abs_samples, frame_chunks, speech_flag_final, ampXPoints, print_string, print_silence,start_time)
+        abs_samples, frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, print_string, print_silence, start_time)
     #print(" Plotting end --- %s seconds ---" % (time.time() - start_time))
+
     print_string += " Plotting end --- %s seconds ---\n" % (
         time.time() - start_time)
     print_string += "Sampling Frequency: %d  Hz\n" % sampling_frequency
@@ -78,7 +80,7 @@ def analyze(input_wav_file, print_silence, start_time):
     return plot, print_string, frame_csv_rows
 
 
-def plot_multi_colour(amplitude_array, frame_chunks, frame_flag_list, xPoints, print_string, print_silence, start_time):
+def plot_multi_colour(amplitude_array, frame_chunks, frame_speech_flag, frame_siren_flag, xPoints, print_string, print_silence, start_time):
     '''
         Plots multi color sample_array based on value of flag_array
         amplitude_array: amplitude list
@@ -94,6 +96,7 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_flag_list, xPoints, p
 
     input_speech_length = 0
     input_silence_length = 0
+    input_siren_length = 0
     frame_csv_rows = []
 
     for i, frame_bounds in enumerate(frame_chunks):
@@ -107,28 +110,30 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_flag_list, xPoints, p
         frame_xPoints = xPoints[frame_start:frame_end]
         frame_time_length = xPoints[frame_end] - xPoints[frame_start]
         frame_xPoints_points = len(frame_xPoints)
-
+        # create row to add to csv file
+        frame_row = zip(frame_xPoints, frame,
+                        itr.repeat(frame_speech_flag[i], frame_xPoints_points), itr.repeat(frame_siren_flag[i], frame_xPoints_points))
         # plot red or blue based on frame flag
-        if frame_flag_list[i]:
-            input_speech_length += frame_time_length
-            frame_row = zip(frame_xPoints, frame,
-                            itr.repeat(1, frame_xPoints_points))
+        if frame_siren_flag[i] == 1:
+            input_siren_length += frame_time_length
+
             if PLOT_SAVE:
-                plot.plot(frame_xPoints, frame, color=[
-                          214 / 255., 39 / 255., 40 / 255.])
-                plot.plot(frame_xPoints, frame, 'r')
+                plot.plot(frame_xPoints, frame, 'c')
+        if frame_speech_flag[i] == 1:
+            input_speech_length += frame_time_length
+
+            if PLOT_SAVE:
+                plot.plot(frame_xPoints, frame, 'k')
         else:
             if PLOT_SAVE:
-                plot.plot(frame_xPoints, frame, color=[
-                          31 / 255., 119 / 255., 180 / 255.])
-                plot.plot(frame_xPoints, frame, 'g')
-            frame_row = zip(frame_xPoints, frame,
-                            itr.repeat(0, frame_xPoints_points))
+                plot.plot(frame_xPoints, frame, 'c')
+
             input_silence_length += frame_time_length
 
         # Append frame rows to main csv list
         frame_csv_rows.extend(frame_row)
 
+    # plot.show()
     print_string += " Plotting loop end --- %s seconds ---\n" % (
         time.time() - start_time)
 
@@ -136,6 +141,7 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_flag_list, xPoints, p
 
     speech_ratio = round((input_speech_length * 100 /
                           (input_speech_length + input_silence_length)), 2)
+    print_string += "Siren Length (s): %d \n" % input_siren_length
     print_string += "Speech Length (H:i:s): %s \n" % str(
         dt.timedelta(seconds=(input_speech_length)))
     print_string += "Speech Length (s): %d \n" % input_speech_length
@@ -153,7 +159,9 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_flag_list, xPoints, p
         if(xPoints_max > 36000):
             x_Step = 3600
         elif(xPoints_max > 3600):
-            x_Step = 600
+            x_Step = 300
+        elif(xPoints_max > 1200):
+            x_Step = 120   
         elif(xPoints_max > 60):
             x_Step = 30
         else:
@@ -186,23 +194,23 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_flag_list, xPoints, p
     return plot, print_string, frame_csv_rows
 
 
-def process_file(input_file, print_silence, start_time):
-    plot, print_string, frame_csv_rows = analyze(
+def process_file(input_file, print_silence, start_time, plot_save):
+    plot_process, print_string, frame_csv_rows = analyze(
         input_file, print_silence, start_time)
 
     filename = os.path.basename(input_file)
     filename = os.path.splitext(filename)[0]
     date_string = dt.datetime.now().strftime("%Y-%m-%d-%H-%M")
-    if PLOT_SAVE:
-        fig = plot.figure()
-        # show plot if needed
-        # plot.show()
-        # save plot as png
-        fig.savefig('png/' + filename + '-' + date_string +
-                    '-' + str(MH_FRAME_DURATION) + 'ms.png')
-        # close plot
-        plot.clf()
-        plot.close()
+
+    #fig = plot_process.figure()
+    # show plot if needed
+    plot_process.show()
+    # save plot as png
+    # fig.savefig('png/' + filename + '-' + date_string +
+    #          '-' + str(MH_FRAME_DURATION) + 'ms.png')
+    # close plot
+
+    plot.close()
 
     # print logs and timestamps to txt file
     with open('txt/' + filename + '-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.txt', "w") as text_file:
@@ -211,7 +219,7 @@ def process_file(input_file, print_silence, start_time):
     # print csv list to csv file
     with open('csv/' + filename + '-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.csv', "w") as csv_file:
         csv_writer = csv.writer(csv_file)
-        header = ['Amplitude', 'time', 'speechFlag']
+        header = ['Amplitude', 'time', 'speechFlag', 'SirenFlag']
         csv_writer.writerow(header)
         [csv_writer.writerow(row) for row in frame_csv_rows]
     if not print_silence:
@@ -232,7 +240,8 @@ if __name__ == "__main__":
 
             # input argument is a file
             if(inputFileorDir):
-                process_file(inputFileorDir, print_silence, start_time)
+                process_file(inputFileorDir, print_silence,
+                             start_time, PLOT_SAVE)
             else:
                 print 'File %s  does not exist' % inputFileorDir
                 sys.exit()
