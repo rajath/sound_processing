@@ -7,6 +7,7 @@ has details of speech length and processing time.
 - a waveform in png format (in folder /png): optional
 has speech activity highlighted in red.
 This is optional and PLOT_SAVE variable needs to be set True inside audio_analysis.py
+- a binary file ( in /numpy folder) in numpy format
 
 Just run it with the command:
 
