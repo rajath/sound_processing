@@ -18,6 +18,8 @@ from scipy import stats
 import operator
 import sys
 
+#ignore divide by zero errors in gmean
+np.seterr(divide='ignore')
 
 SAMPLING_FREQUENCY = 44100  # redundant as we calculate sampling frequency now
 # frame length in milliseconds for milanovic, lukac and domazetovic
@@ -366,9 +368,9 @@ class VAD(object):
             #     print energy_freq_list
             #     print counter_list
             # if not print_silence:
-            #   print "[%d] ." % i,
+            #         print "[%d] ." % i,
             #y1Points.append(dominant_freq - min_dominant_freq - dominant_freq_thresh)
-            y1Points.append(frame_SFM - min_sfm - sfm_thresh)
+            #y1Points.append(frame_SFM - min_sfm - sfm_thresh)
             # y2Points.append(energy_thresh)
             # print energy_freq_list
             # print counter_list
