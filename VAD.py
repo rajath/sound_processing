@@ -133,7 +133,7 @@ def normalize(snd_data):
 
     max_value = max(abs(i) for i in snd_data)
     r = [float(i)/max_value for i in snd_data]
-    return r
+    return r,max_value
 
 
 def locateInArray(list1, list2):
@@ -204,7 +204,7 @@ class VAD(object):
             raise ValueError("Only supports 8 and 16 bit audio formats.")
         abs_samples = struct.unpack(fmt, samples)
 
-        abs_samples = normalize(abs_samples)
+        abs_samples,samples_max_value = normalize(abs_samples)
 
         print "Samples normalized  --- %s seconds ---\n" % (time.time() - start_time)
 
@@ -404,7 +404,7 @@ class VAD(object):
         
 
 
-        return (abs_samples, frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency)
+        return (abs_samples, samples_max_value,frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency)
 
 
 if __name__ == "__main__":

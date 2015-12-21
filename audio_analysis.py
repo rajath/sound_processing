@@ -31,9 +31,9 @@ MH_FRAME_DURATION = 20
 # if we need to save plots (csv stored by default for all runs)
 PLOT_SAVE = False
 PRINT_SILENCE = True
-SAVE_AS_NUMPY = False
+SAVE_AS_NUMPY = True
 SAVE_AS_CSV = True
-PLOT_SAMPLES_DIVISOR = 10 #Reduce no. of points in plotting axis
+PLOT_SAMPLES_DIVISOR = 100 #Reduce no. of points in plotting axis
 
 
 def main(argv):
@@ -63,7 +63,7 @@ def main(argv):
 def analyze(input_wav_file, print_silence, start_time):
     '''Invokes the VAD and plots waveforms'''
 
-    abs_samples, frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency = VAD.moattar_homayounpour(
+    abs_samples, samples_max_value,frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency = VAD.moattar_homayounpour(
         input_wav_file, MH_FRAME_DURATION, print_silence, start_time)
     if not print_silence:
         print("Frame analysis end --- %s seconds ---" %
@@ -72,7 +72,7 @@ def analyze(input_wav_file, print_silence, start_time):
             time.time() - start_time)
     # call function to create csv list and multi color plots (if needed)
     plot_figure, print_string, frame_csv_rows = plot_multi_colour(
-        abs_samples, frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, print_string, print_silence, start_time)
+        abs_samples, samples_max_value,frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, print_string, print_silence, start_time)
     #print(" Plotting end --- %s seconds ---" % (time.time() - start_time))
 
     print_string += "Plotting end --- %s seconds ---\n" % (
@@ -141,7 +141,7 @@ def set_plot_parameters(plot_figure, xPoints, print_string):
     return plot_figure, ax1, ax2, print_string
 
 
-def plot_multi_colour(amplitude_array, frame_chunks, frame_speech_flag, frame_siren_flag, xPoints, print_string, print_silence, start_time):
+def plot_multi_colour(amplitude_array, samples_max_value,frame_chunks, frame_speech_flag, frame_siren_flag, xPoints, print_string, print_silence, start_time):
     '''
         Plots multi color sample_array based on value of flag_array
         amplitude_array: amplitude list
@@ -171,11 +171,13 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_speech_flag, frame_si
         frame_end = frame_bounds[1]
         frame_points = range(frame_start, frame_end)
         frame_length = frame_end - frame_start + 1
+        #multiply by max amplitude value to reduce csv size
         frame = amplitude_array[frame_start:frame_end]
-
+        frame[:] = map(lambda x:int(x*samples_max_value),frame)
         # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
         frame_time_length = xPoints[frame_end] - xPoints[frame_start]
+        #choose every 'PLOT_SAMPLES_DIVISOR no. of points to reduce csv size
         frame_xPoints[:] = frame_xPoints[0::PLOT_SAMPLES_DIVISOR]
         frame[:] = frame[0::PLOT_SAMPLES_DIVISOR]
         frame_xPoints_points = len(frame_xPoints)
@@ -281,10 +283,25 @@ if __name__ == "__main__":
     try:
         # fetch input command arguments or throw exception
         inputFileorDir, isFile, print_silence = main(sys.argv[1:])
+        #Print current state of print/plot variables
         if print_silence:
-            print "Print is set to silent mode. Nothing will be printed"
+            print "Print is OFF"
         else:
-            print "Print is NOT set to silent mode. Output will be printed"
+            print "Print is ON"
+        if PLOT_SAVE:
+            print "Plotting is ON"
+        else:
+            print "Plotting is OFF"
+        print "Every %dth point is being plotted" % PLOT_SAMPLES_DIVISOR    
+        if SAVE_AS_CSV:
+            print "Save as CSV is ON"
+        else:
+            print "Save as CSV is OFF"
+        if SAVE_AS_NUMPY:
+            print "Save as numpy is ON"
+        else:
+            print "Save as numpy is OFF"
+
 
         if(isFile):
 
