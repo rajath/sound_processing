@@ -305,9 +305,9 @@ class VAD(object):
             #   freq_domain_real, freq_domain_imag, sampling_frequency)
             #dominant_freq = 0
             #frame_SFM = 0
-            frame_SFM = get_sfm(freq_magnitudes)
+            #frame_SFM = get_sfm(freq_magnitudes)
 
-            #frame_SFM = calculateSpectralFlatness(freq_magnitudes)
+            frame_SFM = calculateSpectralFlatness(freq_magnitudes)
             xPoints.append(i)
 
             # now, append these attributes to the frame attribute arrays
