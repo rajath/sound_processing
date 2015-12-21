@@ -33,6 +33,7 @@ PLOT_SAVE = False
 PRINT_SILENCE = True
 SAVE_AS_NUMPY = False
 SAVE_AS_CSV = True
+PLOT_SAMPLES_DIVISOR = 10 #Reduce no. of points in plotting axis
 
 
 def main(argv):
@@ -175,6 +176,8 @@ def plot_multi_colour(amplitude_array, frame_chunks, frame_speech_flag, frame_si
         # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
         frame_time_length = xPoints[frame_end] - xPoints[frame_start]
+        frame_xPoints[:] = frame_xPoints[0::PLOT_SAMPLES_DIVISOR]
+        frame[:] = frame[0::PLOT_SAMPLES_DIVISOR]
         frame_xPoints_points = len(frame_xPoints)
         # create row to add to csv file
         frame_row = zip(frame_xPoints, frame,

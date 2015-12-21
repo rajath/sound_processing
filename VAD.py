@@ -63,7 +63,10 @@ def energy(samples):
     Args:
         - samples of a signal
     '''
-    return sum([x**2 for x in samples])
+
+    frame_mean_square = sum([x**2 for x in samples])
+    frame_rms = np.sqrt(frame_mean_square/len(samples))
+    return frame_mean_square, frame_rms 
 
 
 def real_imaginary_freq_domain(samples, sampling_frequency):
@@ -88,33 +91,13 @@ def real_imaginary_freq_domain(samples, sampling_frequency):
     return freq_domain_real, freq_domain_imag, freq_magnitudes, peak_frequency
 
 
-def get_dominant_freq(real_freq_domain_part, imag_freq_domain_part, sampling_frequency):
-    '''Returns the dominant frequency'''
-    max_real = max(real_freq_domain_part)
-    max_imag = max(imag_freq_domain_part)
-
-    dominant_freq = 0
-
-    if (max_real > max_imag):
-        dominant_freq = abs(fftfreq(len(real_freq_domain_part), d=(
-            1.0 / sampling_frequency))[real_freq_domain_part.index(max_real)])
-
-    else:
-        dominant_freq = abs(fftfreq(len(imag_freq_domain_part), d=(
-            1.0 / sampling_frequency))[imag_freq_domain_part.index(max_imag)])
-
-    return dominant_freq
 
 
-def get_freq_domain_magnitudes(real_part, imaginary_part):
-    '''Magnitudes of the real-imag frequencies'''
-    return [sqrt(x**2 + y**2) for x, y in zip(real_part, imaginary_part)]
 
+def get_sfm(frequency_magnitudes):
 
-def get_sfm(frequencies):
-
-    a_mean = arithmetic_mean(frequencies)
-    g_mean = geometric_mean(frequencies)
+    a_mean = arithmetic_mean(frequency_magnitudes)
+    g_mean = geometric_mean(frequency_magnitudes)
     if a_mean > 0 and g_mean != 0:
         sfm = 10 * log10(g_mean / a_mean)
         #sfm = g_mean / a_mean
@@ -124,23 +107,6 @@ def get_sfm(frequencies):
         return 0
 
 
-def calculateSpectralFlatness(powerSpectrum):
-    geometricMean = np.float64(0)
-    arithmeticMean = 0
-   # print spectrumY, len(powerSpectrum)
-    for i in range(len(powerSpectrum)):
-        y = np.float64(powerSpectrum[i])
-        #geometricMean *= y
-        geometricMean += [np.float64(math.log(y)) if y > 0 else 0]
-        arithmeticMean += y
-        # print i, y, geometricMean
-    #geometricMean = geometricMean ** (1.0 / len(spectrumY))
-    geometricMean /= np.float64(len(powerSpectrum))
-    geometricMean = math.exp(geometricMean)
-    arithmeticMean /= float(len(powerSpectrum))
-    spectralFlatness = geometricMean / arithmeticMean
-    # print spectralFlatness, geometricMean, arithmeticMean
-    return spectralFlatness
 
 
 def geometric_mean(frame):
@@ -292,22 +258,16 @@ class VAD(object):
             frame = abs_samples[frame_start:frame_end]
 
             # compute frame energy
-            frame_energy = energy(frame)
+            frame_energy,frame_rms = energy(frame)
             #frame_energy = 0
 
             freq_domain_real, freq_domain_imag, freq_magnitudes, dominant_freq = real_imaginary_freq_domain(
                 frame, sampling_frequency)
 
-            # freq_magnitudes = get_freq_domain_magnitudes(
-            #     freq_domain_real, freq_domain_imag)
-            # print freq_magnitudes
-            # dominant_freq = get_dominant_freq(
-            #   freq_domain_real, freq_domain_imag, sampling_frequency)
-            #dominant_freq = 0
             #frame_SFM = 0
-            #frame_SFM = get_sfm(freq_magnitudes)
+            frame_SFM = get_sfm(freq_magnitudes)
 
-            frame_SFM = calculateSpectralFlatness(freq_magnitudes)
+            #frame_SFM,frame_mean_amplitude = calculateSpectralFlatness(freq_magnitudes)
             xPoints.append(i)
 
             # now, append these attributes to the frame attribute arrays
@@ -359,11 +319,11 @@ class VAD(object):
                 sfm_thresh_counter += 1
                 frame_counter_flag[i] += 1
 
-            energy_freq_list = [frame_energy, min_energy, energy_thresh, dominant_freq,
-                                min_dominant_freq, dominant_freq_thresh, frame_SFM, min_sfm, sfm_thresh]
-            sfm_list = [frame_SFM, min_sfm, sfm_thresh]
-            counter_list = [counter, energy_counter,
-                            dom_freq_counter, sfm_thresh_counter]
+            #energy_freq_list = [frame_energy, min_energy, energy_thresh, dominant_freq,
+              #                  min_dominant_freq, dominant_freq_thresh, frame_SFM, min_sfm, sfm_thresh]
+            #sfm_list = [frame_SFM, min_sfm, sfm_thresh]
+            #counter_list = [counter, energy_counter,
+             #               dom_freq_counter, sfm_thresh_counter]
             # if counter > 1:
             #     print energy_freq_list
             #     print counter_list
