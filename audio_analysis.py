@@ -33,7 +33,8 @@ PLOT_SAVE = False
 PRINT_SILENCE = True
 SAVE_AS_NUMPY = True
 SAVE_AS_CSV = True
-PLOT_SAMPLES_DIVISOR = 100 #Reduce no. of points in plotting axis
+PLOT_SAMPLES_DIVISOR = 0 #Reduce no. of points in plotting axis
+SAVE_ONLY_SPEECH = False #only save speech or siren active rows in the csv/numpy file
 
 
 def main(argv):
@@ -177,13 +178,28 @@ def plot_multi_colour(amplitude_array, samples_max_value,frame_chunks, frame_spe
         # get x coordinates for teh frame (time)
         frame_xPoints = xPoints[frame_start:frame_end]
         frame_time_length = xPoints[frame_end] - xPoints[frame_start]
-        #choose every 'PLOT_SAMPLES_DIVISOR no. of points to reduce csv size
-        frame_xPoints[:] = frame_xPoints[0::PLOT_SAMPLES_DIVISOR]
-        frame[:] = frame[0::PLOT_SAMPLES_DIVISOR]
+        if PLOT_SAMPLES_DIVISOR and not SAVE_ONLY_SPEECH:
+            #choose every 'PLOT_SAMPLES_DIVISOR no. of points to reduce csv size
+            frame_xPoints[:] = frame_xPoints[0::PLOT_SAMPLES_DIVISOR]
+            frame[:] = frame[0::PLOT_SAMPLES_DIVISOR]
+        
         frame_xPoints_points = len(frame_xPoints)
-        # create row to add to csv file
-        frame_row = zip(frame_xPoints, frame,
-                        itr.repeat(int(frame_speech_flag[i]), frame_xPoints_points), itr.repeat(int(frame_siren_flag[i]), frame_xPoints_points))
+        if SAVE_ONLY_SPEECH:
+            if frame_speech_flag[i] ==1 or frame_siren_flag[i] ==1:
+                # add row to add to csv file only fif apeech or siren
+                frame_row = zip(frame_xPoints, frame,
+                                itr.repeat(int(frame_speech_flag[i]), frame_xPoints_points), itr.repeat(int(frame_siren_flag[i]), frame_xPoints_points))
+                        # Append frame rows to main csv list
+                frame_csv_rows.extend(frame_row)
+        else:
+
+            # add row to add to csv file
+            frame_row = zip(frame_xPoints, frame,
+                            itr.repeat(int(frame_speech_flag[i]), frame_xPoints_points), itr.repeat(int(frame_siren_flag[i]), frame_xPoints_points))
+                    # Append frame rows to main csv list
+            frame_csv_rows.extend(frame_row)
+
+
 
         # plot colors based on speech or siren flag
         if frame_siren_flag[i] == 1:
@@ -204,8 +220,7 @@ def plot_multi_colour(amplitude_array, samples_max_value,frame_chunks, frame_spe
 
             input_silence_length += frame_time_length
 
-        # Append frame rows to main csv list
-        frame_csv_rows.extend(frame_row)
+
 
     # plot.show()
     print_string += " Plotting loop end --- %s seconds ---\n" % (
@@ -266,7 +281,7 @@ def process_file(input_file, print_silence, start_time, plot_save):
     if SAVE_AS_CSV:
         with open('csv/' + filename + '-' + date_string + '-' + str(MH_FRAME_DURATION) + 'ms.csv', "w") as csv_file:
             csv_writer = csv.writer(csv_file)
-            header = ['Amplitude', 'time', 'speechFlag', 'SirenFlag']
+            header = ['time', 'Amplitude', 'speechFlag', 'sirenFlag']
             csv_writer.writerow(header)
             [csv_writer.writerow(row) for row in frame_csv_rows]
     if not print_silence:
@@ -292,7 +307,7 @@ if __name__ == "__main__":
             print "Plotting is ON"
         else:
             print "Plotting is OFF"
-        print "Every %dth point is being plotted" % PLOT_SAMPLES_DIVISOR    
+         
         if SAVE_AS_CSV:
             print "Save as CSV is ON"
         else:
@@ -301,7 +316,11 @@ if __name__ == "__main__":
             print "Save as numpy is ON"
         else:
             print "Save as numpy is OFF"
-
+        if SAVE_ONLY_SPEECH:
+            print "Save only speech is ON"
+        else:
+            print "Save only speech is OFF"
+            print "Every %dth point is being plotted" % PLOT_SAMPLES_DIVISOR   
 
         if(isFile):
 
