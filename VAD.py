@@ -10,7 +10,6 @@ import math
 import wave
 import struct
 import csv
-from matplotlib import pyplot
 from array import array
 import time
 import scipy
@@ -160,13 +159,15 @@ def locateInArray(list1, list2):
 class VAD(object):
 
     @staticmethod
-    def moattar_homayounpour(wave_file, mh_frame_duration, print_silence, start_time):
+    def moattar_homayounpour(wave_file, mh_frame_duration, print_silence, start_time,plot_save):
         '''
         Args:
             - wave_file : filename containing the audio to be processes
             - mh_frame_duration: frame length in ms for moattar homayanpour analysis
 
         '''
+        if plot_save:
+            from matplotlib import pyplot
 
         in_file = wave.open(wave_file, 'rb')
         print "File read --- %s seconds ---\n" % (time.time() - start_time)

@@ -10,8 +10,6 @@ import sys
 import numpy as np
 import struct
 import os
-from matplotlib import pyplot as plot
-import matplotlib.dates as md
 import datetime as dt
 import csv as csv
 import getopt
@@ -33,9 +31,11 @@ PLOT_SAVE = False
 PRINT_SILENCE = True
 SAVE_AS_NUMPY = True
 SAVE_AS_CSV = True
-PLOT_SAMPLES_DIVISOR = 0 #Reduce no. of points in plotting axis
+PLOT_SAMPLES_DIVISOR = 100 #Reduce no. of points in plotting axis
 SAVE_ONLY_SPEECH = False #only save speech or siren active rows in the csv/numpy file
 
+if PLOT_SAVE:
+    from matplotlib import pyplot as plot
 
 def main(argv):
     input_arg = ''
@@ -61,11 +61,11 @@ def main(argv):
     return input_arg, isFile, print_silence
 
 
-def analyze(input_wav_file, print_silence, start_time):
+def analyze(input_wav_file, print_silence, start_time,plot_save):
     '''Invokes the VAD and plots waveforms'''
 
     abs_samples, samples_max_value,frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, sampling_frequency = VAD.moattar_homayounpour(
-        input_wav_file, MH_FRAME_DURATION, print_silence, start_time)
+        input_wav_file, MH_FRAME_DURATION, print_silence, start_time,plot_save)
     if not print_silence:
         print("Frame analysis end --- %s seconds ---" %
               (time.time() - start_time))
@@ -73,7 +73,7 @@ def analyze(input_wav_file, print_silence, start_time):
             time.time() - start_time)
     # call function to create csv list and multi color plots (if needed)
     plot_figure, print_string, frame_csv_rows = plot_multi_colour(
-        abs_samples, samples_max_value,frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, print_string, print_silence, start_time)
+        abs_samples, samples_max_value,frame_chunks, speech_flag_final, siren_flag_final, ampXPoints, print_string, print_silence, plot_save,start_time)
     #print(" Plotting end --- %s seconds ---" % (time.time() - start_time))
 
     print_string += "Plotting end --- %s seconds ---\n" % (
@@ -142,7 +142,7 @@ def set_plot_parameters(plot_figure, xPoints, print_string):
     return plot_figure, ax1, ax2, print_string
 
 
-def plot_multi_colour(amplitude_array, samples_max_value,frame_chunks, frame_speech_flag, frame_siren_flag, xPoints, print_string, print_silence, start_time):
+def plot_multi_colour(amplitude_array, samples_max_value,frame_chunks, frame_speech_flag, frame_siren_flag, xPoints, print_string, print_silence, plot_save,start_time):
     '''
         Plots multi color sample_array based on value of flag_array
         amplitude_array: amplitude list
@@ -158,14 +158,19 @@ def plot_multi_colour(amplitude_array, samples_max_value,frame_chunks, frame_spe
     input_speech_length = 0
     input_silence_length = 0
     input_siren_length = 0
+    plot_figure = 0
+    ax1 = 0
+    ax2 = 0
     frame_csv_rows = []
 
-    # create two vertically aligned plots
-    plot_figure = plot.figure(num=None, figsize=(
-        48, 16), dpi=80, facecolor='w', edgecolor='k')
+    if plot_save:
+        # create two vertically aligned plots
+        plot_figure = plot.figure(num=None, figsize=(
+            48, 16), dpi=80, facecolor='w', edgecolor='k')
 
-    plot_figure, ax1, ax2, print_string = set_plot_parameters(
-        plot_figure, xPoints, print_string)
+        plot_figure, ax1, ax2, print_string = set_plot_parameters(
+            plot_figure, xPoints, print_string)
+    
 
     for i, frame_bounds in enumerate(frame_chunks):
         frame_start = frame_bounds[0]
@@ -253,11 +258,12 @@ def save_as_numpy(frame_rows):
 
 def process_file(input_file, print_silence, start_time, plot_save):
     plot_figure, print_string, frame_csv_rows = analyze(
-        input_file, print_silence, start_time)
+        input_file, print_silence, start_time,plot_save)
 
     filename = os.path.basename(input_file)
     filename = os.path.splitext(filename)[0]
     date_string = dt.datetime.now().strftime("%Y-%m-%d-%H-%M")
+
     if plot_save:
         #fig = plot_process.figure()
         # show plot if needed
