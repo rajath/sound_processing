@@ -4,10 +4,10 @@ Can analayze a wave file (or directory of wave files) of any sampling frquency a
 Has three columns for time, amplitude, and speechflag. speechflag will be 1 if speech is detected in that sample
 - a text file (in /txt folder):
 has details of speech length and processing time.
-- a waveform in png format (in folder /png): optional
+- a waveform in png format (in folder /png) (optional)
 has speech activity highlighted in red.
 This is optional and PLOT_SAVE variable needs to be set True inside audio_analysis.py
-- a binary file ( in /numpy folder) in numpy format
+- a binary file ( in /numpy folder) in numpy format (optional)
 
 Just run it with the command:
 
